@@ -1,0 +1,117 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+env:
+  QT_VERSION: "5.15.2"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Instalar Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+
+      - name: Build
+        run: |
+          qmake pixel-casino.pro
+          nmake
+
+      - name: Empacotar (windeployqt)
+        run: |
+          mkdir deploy
+          copy release\pixel-casino.exe deploy\
+          windeployqt --qmldir . deploy\pixel-casino.exe
+
+      - name: Compactar
+        run: Compress-Archive -Path deploy\* -DestinationPath pixel-casino-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: pixel-casino-windows.zip
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: desktop
+
+      - name: Instalar dependências de build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-0 imagemagick
+
+      - name: Build
+        run: |
+          qmake pixel-casino.pro
+          make -j"$(nproc)"
+
+      - name: Preparar AppDir
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+          cp pixel-casino AppDir/usr/bin/
+          convert -background none images/icons/blackjack.svg -resize 256x256 AppDir/usr/share/icons/hicolor/256x256/apps/pixel-casino.png
+          cat > AppDir/usr/share/applications/pixel-casino.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=Pixel Casino
+          Exec=pixel-casino
+          Icon=pixel-casino
+          Categories=Game;
+          EOF
+
+      - name: Baixar linuxdeployqt
+        run: |
+          wget -q "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod +x linuxdeployqt-continuous-x86_64.AppImage
+
+      - name: Gerar AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/pixel-casino.desktop -qmldir=ui -appimage -unsupported-allow-new-glibc
+
+      - name: Renomear artefato
+        run: mv Pixel*.AppImage pixel-casino-linux.AppImage || mv *.AppImage pixel-casino-linux.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: pixel-casino-linux.AppImage
+
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/windows-build/pixel-casino-windows.zip
+            artifacts/linux-build/pixel-casino-linux.AppImage
