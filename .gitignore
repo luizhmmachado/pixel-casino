@@ -11,7 +11,7 @@ cmake_install.cmake
 *.out
 *.exe
 *.dll
-cassino-pt-br
+pixel-casino
 
 # Arquivos do Qt Creator
 *.pro.user

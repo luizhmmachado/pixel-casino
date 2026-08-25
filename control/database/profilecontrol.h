@@ -65,7 +65,7 @@ signals:
 
 private slots:
     void handleRequestFinished( const QJsonDocument& response );
-    void handleRequestFailed( const QString& error );
+    void handleRequestFailed( const QString& error, bool isOffline );
 
 private:
     enum class RequestType {
@@ -89,4 +89,4 @@ private:
     QString _pendingValue;
 };
 
-#endif // PROFILECONTROL_H
+#endif

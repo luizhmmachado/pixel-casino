@@ -10,15 +10,49 @@ TransactionControl::TransactionControl( QObject* parent ) :
 
     connect( &_supabaseApi, &SupabaseApi::requestFinished, this, &TransactionControl::handleRequestFinished );
     connect( &_supabaseApi, &SupabaseApi::requestFailed, this, &TransactionControl::handleRequestFailed );
+
+    _balance = _offlineQueue.cachedBalance();
+
+    _syncTimer.setInterval( 20000 );
+    connect( &_syncTimer, &QTimer::timeout, this, &TransactionControl::syncPendingTransactions );
+    _syncTimer.start();
+
+    syncPendingTransactions();
 }
 
 bool TransactionControl::busy() const {
     return _busy;
 }
 
+int TransactionControl::pendingSyncCount() const {
+    return _offlineQueue.pendingCount();
+}
+
+void TransactionControl::setKnownBalance( double balance ) {
+
+    if ( _offlineQueue.pendingCount() > 0 ) {
+        return;
+    }
+
+    updateBalance( balance );
+}
+
+void TransactionControl::updateBalance( double newBalance ) {
+    _balance = newBalance;
+    _offlineQueue.setCachedBalance( newBalance );
+}
+
+void TransactionControl::setActiveUser( const QString& userName ) {
+
+    _offlineQueue.setActiveUser( userName );
+    _balance = _offlineQueue.cachedBalance();
+
+    emit pendingSyncCountChanged();
+}
+
 void TransactionControl::createTransaction( const QString& userName, double amount, int type, int description ) {
 
-    Q_UNUSED( userName ); // o usuário é resolvido no servidor a partir da sessão autenticada (auth.uid())
+    _offlineQueue.setActiveUser( userName );
 
     if ( _busy ) {
         emit fail( "Outra transacao ainda esta sendo processada." );
@@ -43,19 +77,95 @@ void TransactionControl::createTransaction( const QString& userName, double amou
         return;
     }
 
+    if ( parsedType == TransactionType::Subtract && amount > _balance ) {
+        emit fail( "Saldo insuficiente." );
+        return;
+    }
+
     _pendingAmount = amount;
     _pendingType = parsedType;
     _pendingDescription = parsedDescription;
 
-    _requestType = RequestType::CreateTransaction;
     setBusy( true );
     emit showLoading( true );
+
+    if ( _offlineQueue.pendingCount() > 0 ) {
+        applyOffline();
+        return;
+    }
+
+    _requestType = RequestType::CreateTransaction;
 
     QJsonObject params;
 
     params[ "p_amount" ] = _pendingAmount;
     params[ "p_type" ] = transactionTypeToString( _pendingType );
     params[ "p_description" ] = transactionDescriptionToString( _pendingDescription );
+
+    _supabaseApi.rpc( "create_transaction", params );
+}
+
+void TransactionControl::applyOffline() {
+
+    double newBalance = _balance;
+
+    if ( _pendingType == TransactionType::Add ) {
+        newBalance += _pendingAmount;
+    } else {
+        newBalance -= _pendingAmount;
+    }
+
+    if ( newBalance < 0.0 ) {
+        _requestType = RequestType::None;
+        setBusy( false );
+        emit showLoading( false );
+        resetPendingState();
+        emit fail( "Saldo insuficiente." );
+        return;
+    }
+
+    _offlineQueue.enqueue( _pendingAmount, transactionTypeToString( _pendingType ), transactionDescriptionToString( _pendingDescription ) );
+    updateBalance( newBalance );
+
+    _requestType = RequestType::None;
+    setBusy( false );
+    emit showLoading( false );
+
+    const QString formattedBalance = QLocale::system().toCurrencyString( newBalance );
+
+    resetPendingState();
+
+    emit pendingSyncCountChanged();
+    emit success( formattedBalance, newBalance );
+}
+
+void TransactionControl::syncPendingTransactions() {
+
+    if ( _busy || _requestType != RequestType::None ) {
+        return;
+    }
+
+    if ( !SupabaseApi::hasAccessToken() ) {
+        return;
+    }
+
+    const QVector<OfflineQueue::PendingTransaction> items = _offlineQueue.pending();
+
+    if ( items.isEmpty() ) {
+        return;
+    }
+
+    const OfflineQueue::PendingTransaction next = items.first();
+
+    _pendingSyncId = next.id;
+    _requestType = RequestType::SyncTransaction;
+    setBusy( true );
+
+    QJsonObject params;
+
+    params[ "p_amount" ] = next.amount;
+    params[ "p_type" ] = next.type;
+    params[ "p_description" ] = next.description;
 
     _supabaseApi.rpc( "create_transaction", params );
 }
@@ -77,9 +187,28 @@ void TransactionControl::handleRequestFinished( const QJsonDocument& response ) 
         const QJsonObject result = response.array().first().toObject();
         const double newBalance = result.value( "balance" ).toDouble();
 
+        updateBalance( newBalance );
         resetPendingState();
 
         emit success( QLocale::system().toCurrencyString( newBalance ), newBalance );
+
+        return;
+    }
+
+    if ( _requestType == RequestType::SyncTransaction ) {
+
+        _requestType = RequestType::None;
+        setBusy( false );
+
+        if ( response.isArray() && !response.array().isEmpty() ) {
+            const double newBalance = response.array().first().toObject().value( "balance" ).toDouble();
+            updateBalance( newBalance );
+        }
+
+        _offlineQueue.remove( _pendingSyncId );
+        emit pendingSyncCountChanged();
+
+        syncPendingTransactions();
 
         return;
     }
@@ -91,12 +220,44 @@ void TransactionControl::handleRequestFinished( const QJsonDocument& response ) 
     emit fail( "Resposta inesperada do Supabase." );
 }
 
-void TransactionControl::handleRequestFailed( const QString& error ) {
+void TransactionControl::handleRequestFailed( const QString& error, bool isOffline ) {
+
+    if ( _requestType == RequestType::SyncTransaction ) {
+
+        _requestType = RequestType::None;
+        setBusy( false );
+
+        if ( isOffline ) {
+            return;
+        }
+
+        const QString lowerError = error.toLower();
+        const bool isKnownRejection = lowerError.contains( "insufficient_balance" ) || lowerError.contains( "invalid_amount" ) ||
+            lowerError.contains( "invalid_type" ) || lowerError.contains( "invalid_description" ) || lowerError.contains( "user_not_found" );
+
+        if ( !isKnownRejection ) {
+            qWarning() << "TransactionControl: falha inesperada ao sincronizar, tentará novamente:" << error;
+            return;
+        }
+
+        qWarning() << "TransactionControl: descartando transação offline pendente após erro do servidor:" << error;
+        _offlineQueue.remove( _pendingSyncId );
+        emit pendingSyncCountChanged();
+        syncPendingTransactions();
+
+        return;
+    }
 
     _requestType = RequestType::None;
 
     emit showLoading( false );
     setBusy( false );
+
+    if ( isOffline ) {
+        applyOffline();
+        return;
+    }
+
     resetPendingState();
 
     const QString lowerError = error.toLower();

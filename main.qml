@@ -24,6 +24,7 @@ ApplicationWindow {
     property var nonReturnablePages: [loginPage, registerPage, startingPage]
     property string userName: ""
     property string userBalance: ""
+    property double userBalanceValue: 0
     property string userCreationDate: ""
     property string userCpf: ""
     property string userEmail: ""
@@ -31,15 +32,14 @@ ApplicationWindow {
     property int userAvatarIndex: 0
     property int userAvatarColorIndex: 0
     property string sessionRefreshToken: ""
+    property bool offlineMode: false
     property var avatarNames: [ "card", "crown", "diamond", "horse", "profile", "star" ]
     property bool pageLoading: false
     property bool requestLoading: false
     property bool gameNavigationLocked: false
-    //    visibility: "FullScreen"
     height: 960
     width: 1280
     visible: true
-    // @disable-check M16
     title: qsTr("Pixel Casino")
 
     onLoaderComponentChanged: isNonReturnable()
@@ -70,6 +70,7 @@ ApplicationWindow {
         sessionSettings.loggedIn = true
         sessionSettings.userName = root.userName
         sessionSettings.userBalance = root.userBalance
+        sessionSettings.userBalanceValue = root.userBalanceValue
         sessionSettings.userCreationDate = root.userCreationDate
         sessionSettings.userCpf = root.userCpf
         sessionSettings.userEmail = root.userEmail
@@ -88,8 +89,26 @@ ApplicationWindow {
         sessionValidator.validateSession(sessionSettings.refreshToken)
     }
 
+    function useOfflineSession() {
+        root.offlineMode = true
+        root.userName = sessionSettings.userName
+        root.userBalance = sessionSettings.userBalance
+        root.userBalanceValue = sessionSettings.userBalanceValue
+        root.userCreationDate = sessionSettings.userCreationDate
+        root.userCpf = sessionSettings.userCpf
+        root.userEmail = sessionSettings.userEmail
+        root.userBirthDate = sessionSettings.userBirthDate
+        root.userAvatarIndex = sessionSettings.userAvatarIndex
+        root.userAvatarColorIndex = sessionSettings.userAvatarColorIndex
+        transactionControl.setActiveUser(root.userName)
+        transactionControl.setKnownBalance(root.userBalanceValue)
+        setRequestLoading(false)
+        loaderComponent = startingPage
+    }
+
     function signOut() {
         sessionValidator.logout()
+        transactionControl.setActiveUser("")
 
         sessionSettings.loggedIn = false
         sessionSettings.userName = ""
@@ -102,6 +121,7 @@ ApplicationWindow {
 
         root.userName = ""
         root.userBalance = ""
+        root.userBalanceValue = 0
         root.userCreationDate = ""
         root.userCpf = ""
         root.userEmail = ""
@@ -109,6 +129,7 @@ ApplicationWindow {
         root.userAvatarIndex = 0
         root.userAvatarColorIndex = 0
         root.sessionRefreshToken = ""
+        root.offlineMode = false
         navigateTo(loginPage)
     }
 
@@ -184,6 +205,7 @@ ApplicationWindow {
         property bool loggedIn: false
         property string userName: ""
         property string userBalance: ""
+        property double userBalanceValue: 0
         property string userCreationDate: ""
         property string userCpf: ""
         property string userEmail: ""
@@ -200,7 +222,11 @@ ApplicationWindow {
             root.sessionRefreshToken = refreshToken
         }
 
-        onSessionValidated: function(isValid, formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
+        onSessionOffline: {
+            useOfflineSession()
+        }
+
+        onSessionValidated: function(isValid, formattedBalance, balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
             setRequestLoading(false)
 
             if (!isValid) {
@@ -208,14 +234,18 @@ ApplicationWindow {
                 return
             }
 
+            root.offlineMode = false
             root.userName = userName
             root.userBalance = formattedBalance
+            root.userBalanceValue = balance
             root.userCreationDate = creationDate
             root.userCpf = cpf
             root.userEmail = email
             root.userBirthDate = birthDate
             root.userAvatarIndex = avatarIndex
             root.userAvatarColorIndex = avatarColorIndex
+            transactionControl.setActiveUser(userName)
+            transactionControl.setKnownBalance(balance)
             saveSession()
             loaderComponent = startingPage
         }
@@ -227,6 +257,7 @@ ApplicationWindow {
         onShowLoading: root.loading(show)
         onSuccess: function(formattedBalance, balance) {
             root.userBalance = formattedBalance
+            root.userBalanceValue = balance
             saveSession()
             notifyBetDebitResult(true)
         }
@@ -318,6 +349,8 @@ ApplicationWindow {
                 }
 
                 Text {
+                    id: txtSaldoLabel
+
                     text: qsTr("SALDO: ")
                     font: Fonts.secondaryText8bit
                     color: Colors.secondaryGreen
@@ -336,6 +369,21 @@ ApplicationWindow {
                     anchors {
                         rightMargin: 32
                         right: parent.right
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                Text {
+                    visible: root.offlineMode || transactionControl.pendingSyncCount > 0
+
+                    text: root.offlineMode
+                        ? qsTr("[ OFFLINE ]")
+                        : qsTr("[ SINCRONIZANDO... %1 ]").arg(transactionControl.pendingSyncCount)
+                    font: Fonts.secondaryText8bit
+                    color: Colors.error
+                    anchors {
+                        rightMargin: 16
+                        right: txtSaldoLabel.left
                         verticalCenter: parent.verticalCenter
                     }
                 }
@@ -520,8 +568,10 @@ ApplicationWindow {
             onSessionEstablished: function(refreshToken) {
                 root.sessionRefreshToken = refreshToken
             }
-            onSuccess: function(balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
+            onSuccess: function(balance, balanceValue, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
+                root.offlineMode = false
                 root.userBalance = balance
+                root.userBalanceValue = balanceValue
                 root.userName = userName
                 root.userCreationDate = creationDate
                 root.userCpf = cpf
@@ -529,6 +579,8 @@ ApplicationWindow {
                 root.userBirthDate = birthDate
                 root.userAvatarIndex = avatarIndex
                 root.userAvatarColorIndex = avatarColorIndex
+                transactionControl.setActiveUser(userName)
+                transactionControl.setKnownBalance(balanceValue)
                 saveSession()
                 navigateTo(startingPage)
             }
@@ -543,8 +595,10 @@ ApplicationWindow {
             onSessionEstablished: function(refreshToken) {
                 root.sessionRefreshToken = refreshToken
             }
-            onSuccess: function(balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
+            onSuccess: function(balance, balanceValue, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
+                root.offlineMode = false
                 root.userBalance = balance
+                root.userBalanceValue = balanceValue
                 root.userName = userName
                 root.userCreationDate = creationDate
                 root.userCpf = cpf
@@ -552,6 +606,8 @@ ApplicationWindow {
                 root.userBirthDate = birthDate
                 root.userAvatarIndex = avatarIndex
                 root.userAvatarColorIndex = avatarColorIndex
+                transactionControl.setActiveUser(userName)
+                transactionControl.setKnownBalance(balanceValue)
                 saveSession()
                 navigateTo(startingPage)
             }

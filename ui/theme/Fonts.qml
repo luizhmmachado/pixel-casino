@@ -3,7 +3,6 @@ pragma Singleton
 import QtQuick 2.15
 
 QtObject {
-    // Bundled in app resources: ui/theme/fonts/PressStart2P-Regular.ttf
     property string family: "Press Start 2P"
     property string fallbackFamily: "Monospace"
 

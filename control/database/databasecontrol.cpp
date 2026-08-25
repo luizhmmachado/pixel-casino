@@ -64,7 +64,7 @@ void DataBaseControl::authenticate() {
 void DataBaseControl::validateSession( const QString& refreshToken ) {
 
     if ( refreshToken.isEmpty() ) {
-        emit sessionValidated( false, "", "", "", "", "", "", 0, 0 );
+        emit sessionValidated( false, "", 0.0, "", "", "", "", "", 0, 0 );
         return;
     }
 
@@ -127,9 +127,9 @@ void DataBaseControl::emitProfile( const QJsonObject& profile, bool asSessionVal
     emit sessionEstablished( _pendingRefreshToken );
 
     if ( asSessionValidated ) {
-        emit sessionValidated( true, formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex );
+        emit sessionValidated( true, formattedBalance, balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex );
     } else {
-        emit success( formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex );
+        emit success( formattedBalance, balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex );
     }
 }
 
@@ -216,7 +216,7 @@ void DataBaseControl::handleRequestFinished( const QJsonDocument& response ) {
 
         if ( accessToken.isEmpty() ) {
             _requestType = RequestType::None;
-            emit sessionValidated( false, "", "", "", "", "", "", 0, 0 );
+            emit sessionValidated( false, "", 0.0, "", "", "", "", "", 0, 0 );
             return;
         }
 
@@ -235,7 +235,7 @@ void DataBaseControl::handleRequestFinished( const QJsonDocument& response ) {
         _requestType = RequestType::None;
 
         if ( !response.isArray() || response.array().isEmpty() ) {
-            emit sessionValidated( false, "", "", "", "", "", "", 0, 0 );
+            emit sessionValidated( false, "", 0.0, "", "", "", "", "", 0, 0 );
             return;
         }
 
@@ -253,7 +253,7 @@ void DataBaseControl::handleRequestFinished( const QJsonDocument& response ) {
     emit fail( "Resposta inesperada do Supabase." );
 }
 
-void DataBaseControl::handleRequestFailed( const QString& error ) {
+void DataBaseControl::handleRequestFailed( const QString& error, bool isOffline ) {
 
     const RequestType requestType = _requestType;
 
@@ -266,6 +266,22 @@ void DataBaseControl::handleRequestFailed( const QString& error ) {
     emit showLoading( false );
 
     qWarning() << "DataBaseControl::handleRequestFailed:" << error;
+
+    if ( requestType == RequestType::RefreshSession || requestType == RequestType::FetchProfileAfterRefresh ) {
+
+        if ( isOffline ) {
+            emit sessionOffline();
+            return;
+        }
+
+        emit sessionValidated( false, "", 0.0, "", "", "", "", "", 0, 0 );
+        return;
+    }
+
+    if ( isOffline ) {
+        emit fail( "Sem conexão com a internet. Tente novamente." );
+        return;
+    }
 
     if ( requestType == RequestType::ResolveLoginEmail || requestType == RequestType::SignIn ) {
         emit fail( "E-mail ou senha inválidos." );
@@ -288,11 +304,6 @@ void DataBaseControl::handleRequestFailed( const QString& error ) {
 
     if ( requestType == RequestType::FetchProfile ) {
         emit fail( "Não foi possível carregar o perfil." );
-        return;
-    }
-
-    if ( requestType == RequestType::RefreshSession || requestType == RequestType::FetchProfileAfterRefresh ) {
-        emit sessionValidated( false, "", "", "", "", "", "", 0, 0 );
         return;
     }
 

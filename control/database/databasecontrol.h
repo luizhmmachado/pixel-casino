@@ -45,14 +45,15 @@ signals:
     void birthDtChanged();
     void nameChanged();
     void showLoading( bool show );
-    void success( const QString& formattedBalance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
-    void sessionValidated( bool isValid, const QString& formattedBalance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
+    void success( const QString& formattedBalance, double balance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
+    void sessionValidated( bool isValid, const QString& formattedBalance, double balance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
     void sessionEstablished( const QString& refreshToken );
+    void sessionOffline();
     void fail( const QString& msg );
 
 private slots:
     void handleRequestFinished( const QJsonDocument& response );
-    void handleRequestFailed( const QString& error );
+    void handleRequestFailed( const QString& error, bool isOffline );
 
 private:
     enum class RequestType {
@@ -81,4 +82,4 @@ private:
     QString _pendingRefreshToken;
 };
 
-#endif // DATABASECONTROL_H
+#endif

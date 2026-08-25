@@ -72,4 +72,4 @@ private:
     bool _userHeld;
 };
 
-#endif // BLACKJACKCONTROL_H
+#endif
