@@ -80,16 +80,23 @@ jobs:
           Categories=Game;
           EOF
 
-      - name: Baixar linuxdeployqt
+      - name: Baixar linuxdeploy
         run: |
-          wget -q "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-          chmod +x linuxdeployqt-continuous-x86_64.AppImage
+          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
       - name: Gerar AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
+          QML_SOURCES_PATHS: ${{ github.workspace }}/ui:${{ github.workspace }}
         run: |
-          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/pixel-casino.desktop -qmldir=ui -appimage -unsupported-allow-new-glibc
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --desktop-file=AppDir/usr/share/applications/pixel-casino.desktop \
+            --icon-file=AppDir/usr/share/icons/hicolor/256x256/apps/pixel-casino.png \
+            --plugin qt \
+            --output appimage
 
       - name: Renomear artefato
         run: mv Pixel*.AppImage pixel-casino-linux.AppImage || mv *.AppImage pixel-casino-linux.AppImage
