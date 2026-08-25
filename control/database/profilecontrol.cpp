@@ -6,8 +6,6 @@
 #include <QJsonObject>
 #include <QUrl>
 
-#include <sodium.h>
-
 ProfileControl::ProfileControl( QObject* parent ) :
     QObject( parent ) {
 
@@ -17,19 +15,17 @@ ProfileControl::ProfileControl( QObject* parent ) :
 
 void ProfileControl::changePassword() {
 
-    if ( _userName.isEmpty() || _currentPassword.isEmpty() || _newPassword.isEmpty() ) {
+    if ( _userName.isEmpty() || _email.isEmpty() || _currentPassword.isEmpty() || _newPassword.isEmpty() ) {
         emit fail( "Preencha a senha atual e a nova senha." );
         return;
     }
 
-    _requestType = RequestType::FetchCurrentPassword;
+    _requestType = RequestType::VerifyCurrentPassword;
 
     emit showLoading( true );
 
-    const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
-    const QString endpoint = "users?user=eq." + encodedUserName + "&select=password";
-
-    _supabaseApi.get( endpoint );
+    // Reautentica com a senha atual para confirmá-la antes de trocar (o Supabase Auth não valida isso sozinho).
+    _supabaseApi.authSignInWithPassword( _email, _currentPassword );
 }
 
 void ProfileControl::changeUserName( const QString& newUserName ) {
@@ -52,7 +48,7 @@ void ProfileControl::changeUserName( const QString& newUserName ) {
     emit showLoading( true );
 
     const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
-    const QString endpoint = "users?user=eq." + encodedUserName;
+    const QString endpoint = "profiles?user=eq." + encodedUserName;
 
     QJsonObject data;
     data[ "user" ] = normalizedUserName;
@@ -69,18 +65,15 @@ void ProfileControl::changeEmail( const QString& newEmail ) {
         return;
     }
 
-    _requestType = RequestType::UpdateEmail;
+    _requestType = RequestType::UpdateEmailAuth;
     _pendingValue = normalizedEmail;
 
     emit showLoading( true );
 
-    const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
-    const QString endpoint = "users?user=eq." + encodedUserName;
-
     QJsonObject data;
     data[ "email" ] = normalizedEmail;
 
-    _supabaseApi.patch( endpoint, data );
+    _supabaseApi.authUpdateUser( data );
 }
 
 void ProfileControl::changeAvatar( int avatarIndex, int avatarColorIndex ) {
@@ -101,7 +94,7 @@ void ProfileControl::changeAvatar( int avatarIndex, int avatarColorIndex ) {
     emit showLoading( true );
 
     const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
-    const QString endpoint = "users?user=eq." + encodedUserName;
+    const QString endpoint = "profiles?user=eq." + encodedUserName;
 
     QJsonObject data;
     data[ "avatar_index" ] = avatarIndex;
@@ -112,48 +105,30 @@ void ProfileControl::changeAvatar( int avatarIndex, int avatarColorIndex ) {
 
 void ProfileControl::handleRequestFinished( const QJsonDocument& response ) {
 
-    if ( _requestType == RequestType::FetchCurrentPassword ) {
+    if ( _requestType == RequestType::VerifyCurrentPassword ) {
 
         _requestType = RequestType::None;
 
-        if ( !response.isArray() || response.array().isEmpty() ) {
+        const QJsonObject session = response.object();
+        const QString accessToken = session.value( "access_token" ).toString();
+        const QString refreshToken = session.value( "refresh_token" ).toString();
 
-            emit showLoading( false );
-            emit fail( "Usuário não encontrado." );
-
-            return;
-        }
-
-        const QJsonObject user = response.array().first().toObject();
-        const QString passwordHash = user.value( "password" ).toString();
-
-        if ( passwordHash.isEmpty() || !verifyPassword( _currentPassword, passwordHash ) ) {
-
+        if ( accessToken.isEmpty() ) {
             emit showLoading( false );
             emit fail( "Senha atual incorreta." );
-
             return;
         }
 
-        const QString newPasswordHash = hashPassword( _newPassword );
+        SupabaseApi::setSession( accessToken, refreshToken );
 
-        if ( newPasswordHash.isEmpty() ) {
-
-            emit showLoading( false );
-            emit fail( "Não foi possível proteger a nova senha." );
-
-            return;
-        }
+        emit sessionRefreshed( refreshToken );
 
         _requestType = RequestType::UpdatePassword;
 
-        const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
-        const QString endpoint = "users?user=eq." + encodedUserName;
-
         QJsonObject data;
-        data[ "password" ] = newPasswordHash;
+        data[ "password" ] = _newPassword;
 
-        _supabaseApi.patch( endpoint, data );
+        _supabaseApi.authUpdateUser( data );
 
         return;
     }
@@ -194,16 +169,27 @@ void ProfileControl::handleRequestFinished( const QJsonDocument& response ) {
         return;
     }
 
-    if ( _requestType == RequestType::UpdateEmail ) {
+    if ( _requestType == RequestType::UpdateEmailAuth ) {
+
+        // Mantém a cópia em profiles sincronizada com o e-mail já confirmado no Auth.
+        _requestType = RequestType::UpdateEmailProfile;
+
+        const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
+        const QString endpoint = "profiles?user=eq." + encodedUserName;
+
+        QJsonObject data;
+        data[ "email" ] = _pendingValue;
+
+        _supabaseApi.patch( endpoint, data );
+
+        return;
+    }
+
+    if ( _requestType == RequestType::UpdateEmailProfile ) {
 
         _requestType = RequestType::None;
 
         emit showLoading( false );
-
-        if ( !response.isArray() || response.array().isEmpty() ) {
-            emit fail( "Não foi possível atualizar o e-mail." );
-            return;
-        }
 
         emit success();
 
@@ -226,6 +212,8 @@ void ProfileControl::handleRequestFinished( const QJsonDocument& response ) {
         return;
     }
 
+    _requestType = RequestType::None;
+
     emit showLoading( false );
     emit fail( "Resposta inesperada do Supabase." );
 }
@@ -243,13 +231,23 @@ void ProfileControl::handleRequestFailed( const QString& error ) {
     const QString lowerError = error.toLower();
     const bool isDuplicate = lowerError.contains( "duplicate key" ) || lowerError.contains( "unique constraint" ) || lowerError.contains( "23505" );
 
+    if ( requestType == RequestType::VerifyCurrentPassword ) {
+        emit fail( "Senha atual incorreta." );
+        return;
+    }
+
+    if ( requestType == RequestType::UpdatePassword ) {
+        emit fail( "Não foi possível alterar a senha." );
+        return;
+    }
+
     if ( requestType == RequestType::UpdateUserName ) {
         emit fail( isDuplicate ? "Nome de usuário já está em uso." : "Não foi possível atualizar o nome de usuário." );
         return;
     }
 
-    if ( requestType == RequestType::UpdateEmail ) {
-        emit fail( isDuplicate ? "E-mail já está em uso." : "Não foi possível atualizar o e-mail." );
+    if ( requestType == RequestType::UpdateEmailAuth || requestType == RequestType::UpdateEmailProfile ) {
+        emit fail( isDuplicate || lowerError.contains( "already" ) ? "E-mail já está em uso." : "Não foi possível atualizar o e-mail." );
         return;
     }
 
@@ -258,43 +256,7 @@ void ProfileControl::handleRequestFailed( const QString& error ) {
         return;
     }
 
-    emit fail( "Não foi possível alterar a senha." );
-}
-
-bool ProfileControl::verifyPassword( const QString& password, const QString& passwordHash ) const {
-
-    if ( password.isEmpty() || passwordHash.isEmpty() ) {
-        return false;
-    }
-
-    QByteArray passwordData = password.toUtf8();
-    QByteArray hashData = passwordHash.toUtf8();
-
-    const int result = crypto_pwhash_str_verify( hashData.constData(), passwordData.constData(), static_cast<unsigned long long>( passwordData.size() ) );
-
-    sodium_memzero( passwordData.data(), static_cast<size_t>( passwordData.size() ) );
-
-    return result == 0;
-}
-
-QString ProfileControl::hashPassword( const QString& password ) const {
-
-    QByteArray passwordData = password.toUtf8();
-
-    char hashedPassword[ crypto_pwhash_STRBYTES ];
-
-    const int result = crypto_pwhash_str_alg( hashedPassword, passwordData.constData(), static_cast<unsigned long long>( passwordData.size() ), crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE, crypto_pwhash_ALG_ARGON2ID13 );
-
-    sodium_memzero( passwordData.data(), static_cast<size_t>( passwordData.size() ) );
-
-    if ( result != 0 ) {
-
-        qWarning() << "ProfileControl::hashPassword - Falha ao gerar hash.";
-
-        return {};
-    }
-
-    return QString::fromUtf8( hashedPassword );
+    emit fail( "Não foi possível concluir a operação." );
 }
 
 QString ProfileControl::userName() const {
@@ -309,6 +271,20 @@ void ProfileControl::setUserName( const QString& userName ) {
     _userName = userName;
 
     emit userNameChanged();
+}
+
+QString ProfileControl::email() const {
+    return _email;
+}
+
+void ProfileControl::setEmail( const QString& email ) {
+
+    if ( _email == email )
+        return;
+
+    _email = email;
+
+    emit emailChanged();
 }
 
 QString ProfileControl::currentPassword() const {

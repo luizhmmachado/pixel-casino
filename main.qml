@@ -30,6 +30,7 @@ ApplicationWindow {
     property string userBirthDate: ""
     property int userAvatarIndex: 0
     property int userAvatarColorIndex: 0
+    property string sessionRefreshToken: ""
     property var avatarNames: [ "card", "crown", "diamond", "horse", "profile", "star" ]
     property bool pageLoading: false
     property bool requestLoading: false
@@ -75,18 +76,21 @@ ApplicationWindow {
         sessionSettings.userBirthDate = root.userBirthDate
         sessionSettings.userAvatarIndex = root.userAvatarIndex
         sessionSettings.userAvatarColorIndex = root.userAvatarColorIndex
+        sessionSettings.refreshToken = root.sessionRefreshToken
     }
 
     function restoreSession() {
-        if (!sessionSettings.loggedIn) {
+        if (!sessionSettings.loggedIn || !sessionSettings.refreshToken) {
             setRequestLoading(false)
             return
         }
 
-        sessionValidator.validateSession(sessionSettings.userName)
+        sessionValidator.validateSession(sessionSettings.refreshToken)
     }
 
     function signOut() {
+        sessionValidator.logout()
+
         sessionSettings.loggedIn = false
         sessionSettings.userName = ""
         sessionSettings.userBalance = ""
@@ -94,6 +98,7 @@ ApplicationWindow {
         sessionSettings.userCpf = ""
         sessionSettings.userEmail = ""
         sessionSettings.userBirthDate = ""
+        sessionSettings.refreshToken = ""
 
         root.userName = ""
         root.userBalance = ""
@@ -103,6 +108,7 @@ ApplicationWindow {
         root.userBirthDate = ""
         root.userAvatarIndex = 0
         root.userAvatarColorIndex = 0
+        root.sessionRefreshToken = ""
         navigateTo(loginPage)
     }
 
@@ -184,10 +190,15 @@ ApplicationWindow {
         property string userBirthDate: ""
         property int userAvatarIndex: 0
         property int userAvatarColorIndex: 0
+        property string refreshToken: ""
     }
 
     DataBaseControl {
         id: sessionValidator
+
+        onSessionEstablished: function(refreshToken) {
+            root.sessionRefreshToken = refreshToken
+        }
 
         onSessionValidated: function(isValid, formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
             setRequestLoading(false)
@@ -467,6 +478,10 @@ ApplicationWindow {
                 root.userAvatarColorIndex = avatarColorIndex
                 saveSession()
             }
+            onSessionRefreshed: function(refreshToken) {
+                root.sessionRefreshToken = refreshToken
+                saveSession()
+            }
         }
     }
 
@@ -502,6 +517,9 @@ ApplicationWindow {
         LoginPage{
             onShowLoading: root.loading(show)
             onRegister: navigateTo(registerPage)
+            onSessionEstablished: function(refreshToken) {
+                root.sessionRefreshToken = refreshToken
+            }
             onSuccess: function(balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
                 root.userBalance = balance
                 root.userName = userName
@@ -522,6 +540,9 @@ ApplicationWindow {
 
         RegisterPage{
             onShowLoading: root.loading(show)
+            onSessionEstablished: function(refreshToken) {
+                root.sessionRefreshToken = refreshToken
+            }
             onSuccess: function(balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex) {
                 root.userBalance = balance
                 root.userName = userName

@@ -44,9 +44,7 @@ private slots:
 private:
     enum class RequestType {
         None,
-        FetchUser,
-        InsertTransaction,
-        UpdateUserBalance
+        CreateTransaction
     };
 
     void setBusy( bool busy );
@@ -61,15 +59,9 @@ private:
     RequestType _requestType = RequestType::None;
     bool _busy = false;
 
-    QString _pendingUserName;
     double _pendingAmount = 0.0;
     TransactionType _pendingType = TransactionType::Add;
     TransactionDescription _pendingDescription = TransactionDescription::Deposit;
-
-    QString _pendingUserId;
-    bool _pendingUserIdIsString = false;
-    double _pendingCurrentBalance = 0.0;
-    double _pendingNewBalance = 0.0;
 };
 
 #endif // TRANSACTIONCONTROL_H

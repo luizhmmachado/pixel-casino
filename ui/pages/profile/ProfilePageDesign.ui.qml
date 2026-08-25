@@ -117,6 +117,7 @@ Item {
 
                             width: parent.width
                             userName: root.userName
+                            userEmail: root.userEmail
                         }
                     }
                 }
