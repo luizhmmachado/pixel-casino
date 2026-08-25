@@ -59,7 +59,7 @@ jobs:
       - name: Instalar dependências de build
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-0 imagemagick
+          sudo apt-get install -y build-essential libgl1-mesa-dev libxkbcommon-x11-0 imagemagick libfuse2
 
       - name: Build
         run: |
