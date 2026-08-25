@@ -29,4 +29,4 @@ private:
     QStringList _imageList;
 };
 
-#endif // HORSERACECONTROL_H
+#endif

@@ -51,4 +51,4 @@ private:
     QString _image;
 };
 
-#endif // HORSEMODEL_H
+#endif

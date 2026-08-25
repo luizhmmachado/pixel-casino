@@ -11,7 +11,7 @@ Item {
     anchors.fill: parent
 
     signal login
-    signal success(var balance, string userName, string creationDate, string userCpf, string userEmail, string birthDate, int avatarIndex, int avatarColorIndex)
+    signal success(var balance, double balanceValue, string userName, string creationDate, string userCpf, string userEmail, string birthDate, int avatarIndex, int avatarColorIndex)
     signal sessionEstablished(string refreshToken)
     signal showLoading(bool show)
 
@@ -527,7 +527,7 @@ Item {
         }
 
         onSuccess: {
-            root.success(formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex)
+            root.success(formattedBalance, balance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex)
         }
 
         onSessionEstablished: function(refreshToken) {

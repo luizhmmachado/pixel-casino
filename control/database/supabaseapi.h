@@ -30,13 +30,13 @@ public:
     static void setAccessToken( const QString& accessToken );
     static void setSession( const QString& accessToken, const QString& refreshToken );
     static void clearAccessToken();
+    static bool hasAccessToken();
 
 signals:
     void requestFinished( const QJsonDocument& response );
-    void requestFailed( const QString& error );
+    void requestFailed( const QString& error, bool isOffline );
 
 private:
-    // Descreve uma requisição em andamento para permitir refazê-la automaticamente após um refresh de sessão.
     struct PendingRequest {
         bool retryable = false;
         bool isRetry = false;
@@ -55,4 +55,4 @@ private:
     static QString s_refreshToken;
 };
 
-#endif // SUPABASEAPI_H
+#endif

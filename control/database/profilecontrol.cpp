@@ -24,7 +24,6 @@ void ProfileControl::changePassword() {
 
     emit showLoading( true );
 
-    // Reautentica com a senha atual para confirmá-la antes de trocar (o Supabase Auth não valida isso sozinho).
     _supabaseApi.authSignInWithPassword( _email, _currentPassword );
 }
 
@@ -171,7 +170,6 @@ void ProfileControl::handleRequestFinished( const QJsonDocument& response ) {
 
     if ( _requestType == RequestType::UpdateEmailAuth ) {
 
-        // Mantém a cópia em profiles sincronizada com o e-mail já confirmado no Auth.
         _requestType = RequestType::UpdateEmailProfile;
 
         const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _userName.trimmed().toLower() ) );
@@ -218,7 +216,7 @@ void ProfileControl::handleRequestFinished( const QJsonDocument& response ) {
     emit fail( "Resposta inesperada do Supabase." );
 }
 
-void ProfileControl::handleRequestFailed( const QString& error ) {
+void ProfileControl::handleRequestFailed( const QString& error, bool isOffline ) {
 
     const RequestType requestType = _requestType;
 
@@ -227,6 +225,11 @@ void ProfileControl::handleRequestFailed( const QString& error ) {
     emit showLoading( false );
 
     qWarning() << "ProfileControl::handleRequestFailed:" << error;
+
+    if ( isOffline ) {
+        emit fail( "Sem conexão com a internet. Tente novamente mais tarde." );
+        return;
+    }
 
     const QString lowerError = error.toLower();
     const bool isDuplicate = lowerError.contains( "duplicate key" ) || lowerError.contains( "unique constraint" ) || lowerError.contains( "23505" );

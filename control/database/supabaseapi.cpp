@@ -42,7 +42,10 @@ void SupabaseApi::clearAccessToken() {
     s_refreshToken.clear();
 }
 
-// Sessão compartilhada entre todas as instâncias: o app é um cliente desktop de usuário único por processo.
+bool SupabaseApi::hasAccessToken() {
+    return !s_accessToken.isEmpty();
+}
+
 QString SupabaseApi::bearerToken() {
     return s_accessToken.isEmpty() ? SUPABASE_KEY : s_accessToken;
 }
@@ -420,6 +423,7 @@ void SupabaseApi::handleReply( QNetworkReply* reply ) {
     const int statusCode = reply->attribute( QNetworkRequest::HttpStatusCodeAttribute ).toInt();
     const QByteArray responseData = reply->readAll();
     const bool hasError = reply->error() != QNetworkReply::NoError;
+    const bool isOffline = hasError && statusCode == 0;
 
     reply->deleteLater();
 
@@ -430,8 +434,12 @@ void SupabaseApi::handleReply( QNetworkReply* reply ) {
         const QString refreshToken = session.value( "refresh_token" ).toString();
 
         if ( hasError || accessToken.isEmpty() ) {
-            clearAccessToken();
-            emit requestFailed( "Sessão expirada. Faça login novamente." );
+
+            if ( !isOffline ) {
+                clearAccessToken();
+            }
+
+            emit requestFailed( isOffline ? "Sem conexão com a internet." : "Sessão expirada. Faça login novamente.", isOffline );
             return;
         }
 
@@ -446,7 +454,6 @@ void SupabaseApi::handleReply( QNetworkReply* reply ) {
 
     if ( hasError ) {
 
-        // Sessão pode ter expirado no meio do uso: renova o token e refaz a requisição uma única vez.
         if ( statusCode == 401 && pending.retryable && !pending.isRetry && !s_refreshToken.isEmpty() ) {
             refreshAndRetry( pending );
             return;
@@ -455,7 +462,8 @@ void SupabaseApi::handleReply( QNetworkReply* reply ) {
         emit requestFailed(
             reply->errorString() +
             " | " +
-            QString::fromUtf8( responseData )
+            QString::fromUtf8( responseData ),
+            isOffline
             );
 
         return;
@@ -467,7 +475,8 @@ void SupabaseApi::handleReply( QNetworkReply* reply ) {
     if ( response.isNull() && !responseData.isEmpty() ) {
         emit requestFailed(
             "Resposta JSON inválida: " +
-            QString::fromUtf8( responseData )
+            QString::fromUtf8( responseData ),
+            false
             );
 
         return;

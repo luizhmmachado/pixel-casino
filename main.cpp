@@ -18,7 +18,7 @@ int main( int argc, char* argv[] ) {
 
     QCoreApplication::setOrganizationName( "PixelCasino" );
     QCoreApplication::setOrganizationDomain( "pixelcasino.local" );
-    QCoreApplication::setApplicationName( "cassino-pt-br" );
+    QCoreApplication::setApplicationName( "pixel-casino" );
 
     DataBaseControl databaseControl;
 
