@@ -1,11 +1,9 @@
 #include "transactioncontrol.h"
 
-#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
-#include <QUrl>
 
 TransactionControl::TransactionControl( QObject* parent ) :
     QObject( parent ) {
@@ -20,15 +18,10 @@ bool TransactionControl::busy() const {
 
 void TransactionControl::createTransaction( const QString& userName, double amount, int type, int description ) {
 
+    Q_UNUSED( userName ); // o usuário é resolvido no servidor a partir da sessão autenticada (auth.uid())
+
     if ( _busy ) {
         emit fail( "Outra transacao ainda esta sendo processada." );
-        return;
-    }
-
-    const QString normalizedUserName = userName.trimmed().toLower();
-
-    if ( normalizedUserName.isEmpty() ) {
-        emit fail( "Usuario invalido." );
         return;
     }
 
@@ -50,126 +43,43 @@ void TransactionControl::createTransaction( const QString& userName, double amou
         return;
     }
 
-    _pendingUserName = normalizedUserName;
     _pendingAmount = amount;
     _pendingType = parsedType;
     _pendingDescription = parsedDescription;
-    _pendingUserId.clear();
-    _pendingUserIdIsString = false;
-    _pendingCurrentBalance = 0.0;
-    _pendingNewBalance = 0.0;
 
-    _requestType = RequestType::FetchUser;
+    _requestType = RequestType::CreateTransaction;
     setBusy( true );
     emit showLoading( true );
 
-    const QString encodedUserName = QString::fromUtf8( QUrl::toPercentEncoding( _pendingUserName ) );
-    const QString endpoint = "users?user=eq." + encodedUserName + "&select=id,balance&limit=1";
+    QJsonObject params;
 
-    _supabaseApi.get( endpoint );
+    params[ "p_amount" ] = _pendingAmount;
+    params[ "p_type" ] = transactionTypeToString( _pendingType );
+    params[ "p_description" ] = transactionDescriptionToString( _pendingDescription );
+
+    _supabaseApi.rpc( "create_transaction", params );
 }
 
 void TransactionControl::handleRequestFinished( const QJsonDocument& response ) {
 
-    if ( _requestType == RequestType::FetchUser ) {
-        if ( !response.isArray() || response.array().isEmpty() ) {
-            _requestType = RequestType::None;
-            emit showLoading( false );
-            setBusy( false );
-            resetPendingState();
-            emit fail( "Usuario nao encontrado." );
-            return;
-        }
+    if ( _requestType == RequestType::CreateTransaction ) {
 
-        const QJsonObject user = response.array().first().toObject();
-
-        const QJsonValue userIdValue = user.value( "id" );
-
-        if ( userIdValue.isString() ) {
-            _pendingUserId = userIdValue.toString();
-            _pendingUserIdIsString = true;
-        } else if ( userIdValue.isDouble() ) {
-            _pendingUserId = QString::number( static_cast<qlonglong>( userIdValue.toDouble() ) );
-            _pendingUserIdIsString = false;
-        }
-
-        _pendingCurrentBalance = user.value( "balance" ).toDouble( 0.0 );
-
-        if ( _pendingUserId.isEmpty() ) {
-            _requestType = RequestType::None;
-            emit showLoading( false );
-            setBusy( false );
-            resetPendingState();
-            emit fail( "ID do usuario nao encontrado." );
-            return;
-        }
-
-        if ( _pendingType == TransactionType::Add ) {
-            _pendingNewBalance = _pendingCurrentBalance + _pendingAmount;
-        } else {
-            _pendingNewBalance = _pendingCurrentBalance - _pendingAmount;
-        }
-
-        if ( _pendingNewBalance < 0.0 ) {
-            _requestType = RequestType::None;
-            emit showLoading( false );
-            setBusy( false );
-            resetPendingState();
-            emit fail( "Saldo insuficiente." );
-            return;
-        }
-
-        QJsonObject transaction;
-
-        if ( _pendingUserIdIsString ) {
-            transaction[ "user_id" ] = _pendingUserId;
-        } else {
-            transaction[ "user_id" ] = _pendingUserId.toLongLong();
-        }
-
-        transaction[ "amount" ] = _pendingAmount;
-        transaction[ "type" ] = transactionTypeToString( _pendingType );
-        transaction[ "description" ] = transactionDescriptionToString( _pendingDescription );
-        transaction[ "creation_date" ] = QDateTime::currentDateTimeUtc().toString( Qt::ISODateWithMs );
-
-        _requestType = RequestType::InsertTransaction;
-        _supabaseApi.post( "transactions", transaction );
-
-        return;
-    }
-
-    if ( _requestType == RequestType::InsertTransaction ) {
-
-        QString idFilter;
-
-        if ( _pendingUserIdIsString ) {
-            idFilter = QString::fromUtf8( QUrl::toPercentEncoding( _pendingUserId ) );
-        } else {
-            idFilter = _pendingUserId;
-        }
-
-        const QString endpoint = "users?id=eq." + idFilter;
-
-        QJsonObject data;
-        data[ "balance" ] = _pendingNewBalance;
-
-        _requestType = RequestType::UpdateUserBalance;
-        _supabaseApi.patch( endpoint, data );
-
-        return;
-    }
-
-    if ( _requestType == RequestType::UpdateUserBalance ) {
         _requestType = RequestType::None;
         emit showLoading( false );
         setBusy( false );
 
-        const QString formattedBalance = QLocale::system().toCurrencyString( _pendingNewBalance );
-        const double finalBalance = _pendingNewBalance;
+        if ( !response.isArray() || response.array().isEmpty() ) {
+            resetPendingState();
+            emit fail( "Não foi possível concluir a transação." );
+            return;
+        }
+
+        const QJsonObject result = response.array().first().toObject();
+        const double newBalance = result.value( "balance" ).toDouble();
 
         resetPendingState();
 
-        emit success( formattedBalance, finalBalance );
+        emit success( QLocale::system().toCurrencyString( newBalance ), newBalance );
 
         return;
     }
@@ -188,6 +98,18 @@ void TransactionControl::handleRequestFailed( const QString& error ) {
     emit showLoading( false );
     setBusy( false );
     resetPendingState();
+
+    const QString lowerError = error.toLower();
+
+    if ( lowerError.contains( "insufficient_balance" ) ) {
+        emit fail( "Saldo insuficiente." );
+        return;
+    }
+
+    if ( lowerError.contains( "user_not_found" ) ) {
+        emit fail( "Usuario nao encontrado." );
+        return;
+    }
 
     emit fail( error );
 }
@@ -271,12 +193,7 @@ bool TransactionControl::parseTransactionDescription( int value, TransactionDesc
 }
 
 void TransactionControl::resetPendingState() {
-    _pendingUserName.clear();
     _pendingAmount = 0.0;
     _pendingType = TransactionType::Add;
     _pendingDescription = TransactionDescription::Deposit;
-    _pendingUserId.clear();
-    _pendingUserIdIsString = false;
-    _pendingCurrentBalance = 0.0;
-    _pendingNewBalance = 0.0;
 }
