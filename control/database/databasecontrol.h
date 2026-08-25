@@ -35,7 +35,8 @@ public:
 public slots:
     void insert();
     void authenticate();
-    void validateSession( const QString& userName );
+    void validateSession( const QString& refreshToken );
+    void logout();
 
 signals:
     void emailChanged();
@@ -46,6 +47,7 @@ signals:
     void showLoading( bool show );
     void success( const QString& formattedBalance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
     void sessionValidated( bool isValid, const QString& formattedBalance, const QString& userName, const QString& creationDate, const QString& cpf, const QString& email, const QString& birthDate, int avatarIndex, int avatarColorIndex );
+    void sessionEstablished( const QString& refreshToken );
     void fail( const QString& msg );
 
 private slots:
@@ -55,18 +57,19 @@ private slots:
 private:
     enum class RequestType {
         None,
-        Insert,
-        Authenticate,
-        CheckDuplicate,
-        ValidateSession
+        ResolveLoginEmail,
+        SignUp,
+        SignIn,
+        FetchProfile,
+        RefreshSession,
+        FetchProfileAfterRefresh
     };
 
     SupabaseApi _supabaseApi;
 
-    bool verifyPassword( const QString& password, const QString& passwordHash ) const;
     QString normalizeUserName( const QString& fullName ) const;
-
-    QString hashPassword( const QString& password ) const;
+    void fetchProfile();
+    void emitProfile( const QJsonObject& profile, bool asSessionValidated );
 
     RequestType _requestType = RequestType::None;
 
@@ -75,6 +78,7 @@ private:
     QString _cpf;
     QString _birthDt;
     QString _name;
+    QString _pendingRefreshToken;
 };
 
 #endif // DATABASECONTROL_H

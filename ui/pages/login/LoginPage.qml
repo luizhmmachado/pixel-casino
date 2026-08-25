@@ -11,6 +11,7 @@ Item {
 
     signal register
     signal success( var balance, string userName, string creationDate, string userCpf, string userEmail, string birthDate, int avatarIndex, int avatarColorIndex )
+    signal sessionEstablished( string refreshToken )
     signal showLoading( bool show )
 
     property bool updatingIdentifier: false
@@ -230,6 +231,10 @@ Item {
 
         onSuccess: {
             root.success( formattedBalance, userName, creationDate, cpf, email, birthDate, avatarIndex, avatarColorIndex )
+        }
+
+        onSessionEstablished: function(refreshToken) {
+            root.sessionEstablished(refreshToken)
         }
 
         onFail: {

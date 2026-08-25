@@ -6,6 +6,7 @@ ProfilePageDesign {
 	signal userEmailUpdated(string newEmail)
 	signal userAvatarUpdated(int avatarIndex, int avatarColorIndex)
 	signal showLoading(bool show)
+	signal sessionRefreshed(string refreshToken)
 
 	property string editingField: ""
 	property int pendingAvatarIndex: -1
@@ -108,6 +109,10 @@ ProfilePageDesign {
 
 	profilePagePassword.onShowLoading: {
 		showLoading(show)
+	}
+
+	profilePagePassword.onSessionRefreshed: function(refreshToken) {
+		sessionRefreshed(refreshToken)
 	}
 
 	profileControl.onFail: {

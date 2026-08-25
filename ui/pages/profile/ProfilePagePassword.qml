@@ -6,6 +6,7 @@ ProfilePagePasswordDesign {
 
     signal showLoading(bool show)
     signal anyTextChanged()
+    signal sessionRefreshed(string refreshToken)
     property bool suppressMessageReset: false
 
     function hasUppercase(password) {
@@ -62,6 +63,7 @@ ProfilePagePasswordDesign {
 
     btnChangePassword.onClicked: {
         control.userName = root.userName
+        control.email = root.userEmail
         control.currentPassword = fldActualPassword.text
         control.newPassword = fldNewPassword.text
 
@@ -71,6 +73,10 @@ ProfilePagePasswordDesign {
     control.onShowLoading: {
         root.showLoading(show)
         root.isChangingPassword = show
+    }
+
+    control.onSessionRefreshed: function(refreshToken) {
+        root.sessionRefreshed(refreshToken)
     }
 
     control.onSuccess: {
