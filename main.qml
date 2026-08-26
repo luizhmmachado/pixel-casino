@@ -44,6 +44,12 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pixel Casino")
 
+    Binding {
+        target: Fonts
+        property: "mobile"
+        value: root.mobileLayout
+    }
+
     onLoaderComponentChanged: isNonReturnable()
     onLoading: function(show) {
         setRequestLoading(show)
