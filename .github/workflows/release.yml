@@ -24,7 +24,9 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-          tools: tools_openssl_x64
+          # tools_openssl_x64 foi removido do repositorio da Qt; o pacote MinGW
+          # ainda traz as DLLs OpenSSL 1.1.1 exigidas pelo Qt 5.15.
+          tools: tools_mingw1310
 
       - name: Build
         run: |
@@ -41,8 +43,9 @@ jobs:
         shell: pwsh
         run: |
           $dlls = Get-ChildItem -Path "$env:IQTA_TOOLS" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
-          if (-not $dlls) { throw "OpenSSL nao encontrado em $env:IQTA_TOOLS" }
-          $dlls | Copy-Item -Destination deploy\ -Force
+          if (-not $dlls) { throw "OpenSSL 1.1.1 nao encontrado em $env:IQTA_TOOLS" }
+          $dlls | Group-Object Name | ForEach-Object { $_.Group[0] } | Copy-Item -Destination deploy\ -Force
+          Get-ChildItem deploy\lib*-1_1-x64.dll
 
       - name: Compactar
         run: Compress-Archive -Path deploy\* -DestinationPath pixel-casino-windows.zip
