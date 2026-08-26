@@ -160,6 +160,16 @@ Item {
         Grid {
             id: gamesGrid
 
+            property real uniformCardHeight: {
+                var maxHeight = 240
+
+                for (var childIndex = 0; childIndex < children.length; childIndex++) {
+                    maxHeight = Math.max(maxHeight, children[childIndex].implicitHeight)
+                }
+
+                return maxHeight
+            }
+
             x: mobileLayout ? 16 : 32
             y: mobileLayout ? 24 : 64
             width: gamesFlickable.width - (mobileLayout ? 32 : 64)
@@ -171,7 +181,7 @@ Item {
 
                 StartingPageGameCard {
                     width: mobileLayout ? gamesGrid.width : (gamesGrid.width - gamesGrid.spacing) / 2
-                    height: Math.max(240, implicitHeight)
+                    height: gamesGrid.uniformCardHeight
 
                     gameName: modelData.name
                     gameCategory: modelData.category
