@@ -41,7 +41,9 @@ Item {
     }
 
     RowLayout {
-        id: rowButtons
+        id: rowButtonsDesktop
+
+        visible: !mobileLayout
 
         anchors {
             top: txtSecondary.bottom
@@ -91,6 +93,49 @@ Item {
 
                         onClicked: selectedCategory = model.index
                     }
+                }
+            }
+        }
+    }
+
+    Column {
+        id: rowButtons
+
+        visible: mobileLayout
+        spacing: 16
+
+        anchors {
+            top: txtSecondary.bottom
+            topMargin: 24
+            left: parent.left
+            right: parent.right
+            leftMargin: 16
+            rightMargin: 16
+        }
+
+        Text {
+            text: qsTr("[ SELECIONE SEU JOGO ]")
+            font: Fonts.text8bit
+            color: Colors.yellow100
+        }
+
+        Flow {
+            width: parent.width
+            spacing: 8
+
+            Repeater {
+                model: gameCategories
+
+                ComponentButton {
+                    componentBtnText: modelData
+                    componentHeight: 48
+                    componentWidth: btnText.contentWidth + 16
+                    componentEnabledColor: Colors.background
+                    componentDisabledColor: Colors.background
+                    componentBorderColor: root.selectedCategory === model.index ? Colors.yellow100 : Colors.secondaryGreen
+                    componentTextColor: root.selectedCategory === model.index ? Colors.yellow100 : Colors.secondaryGreen
+
+                    onClicked: selectedCategory = model.index
                 }
             }
         }
