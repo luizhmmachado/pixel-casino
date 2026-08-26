@@ -181,7 +181,7 @@ Item {
             y: mobileLayout ? 24 : 64
             width: gamesFlickable.width - (mobileLayout ? 32 : 64)
             columns: mobileLayout ? 1 : 2
-            spacing: mobileLayout ? 24 : 32
+            spacing: mobileLayout ? 16 : 32
 
             Repeater {
                 model: filteredGames
