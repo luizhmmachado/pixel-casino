@@ -57,15 +57,22 @@ Item {
         height: 48
 
         Text {
+            id: subtitleDesktop
+
             text: qsTr("[ SELECIONE SEU JOGO ]")
             font: Fonts.text8bit
             color: Colors.yellow100
+            elide: Text.ElideRight
 
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: Math.max(0, rowButtonsDesktop.width - filtersDesktop.implicitWidth - 16)
             Layout.alignment: mobileLayout ? Qt.AlignLeft : Qt.AlignVCenter
         }
 
         Item {
-            Layout.fillWidth: true
+            Layout.preferredWidth: filtersDesktop.implicitWidth
+            Layout.minimumWidth: filtersDesktop.implicitWidth
             height: 48
             Layout.alignment: Qt.AlignVCenter
 
