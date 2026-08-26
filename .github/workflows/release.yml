@@ -151,7 +151,12 @@ jobs:
         run: |
           qmake pixel-casino.pro CONFIG+=release
           make -j"$(nproc)"
-          make apk
+          make install INSTALL_ROOT=android-build
+          androiddeployqt \
+            --input android-pixel-casino-deployment-settings.json \
+            --output android-build \
+            --android-platform android-31 \
+            --apk android-build/pixel-casino.apk
           find . -type f -name "*.apk" -exec cp {} pixel-casino-android.apk \;
 
       - uses: actions/upload-artifact@v4
