@@ -177,7 +177,7 @@ Item {
 
         Rectangle {
             id: rctForm
-            width: parent.width * 0.6
+            width: parent.width < 700 ? parent.width - 32 : parent.width * 0.6
             height: formColumn.implicitHeight + 128
             anchors.centerIn: parent
             border.width: 2

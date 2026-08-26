@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.1
+import QtQuick.Window 2.15
 import DataBaseControl 1.0
 import TransactionControl 1.0
 import Components 1.0
@@ -37,8 +38,9 @@ ApplicationWindow {
     property bool pageLoading: false
     property bool requestLoading: false
     property bool gameNavigationLocked: false
-    height: 960
-    width: 1280
+    property bool mobileLayout: width < 700 || Qt.platform.os === "android" || Qt.platform.os === "ios"
+    height: Qt.platform.os === "android" || Qt.platform.os === "ios" ? Screen.height : 960
+    width: Qt.platform.os === "android" || Qt.platform.os === "ios" ? Screen.width : 1280
     visible: true
     title: qsTr("Pixel Casino")
 
@@ -274,7 +276,7 @@ ApplicationWindow {
             id: header
 
             width: parent.width
-            height: 60
+            height: mobileLayout ? 52 : 60
             color: Colors.primary
             visible: !isLoginOrRegisterPage
 
@@ -296,7 +298,7 @@ ApplicationWindow {
                 anchors{
                     left: parent.left
                     verticalCenter: parent.verticalCenter
-                    leftMargin: 32
+                    leftMargin: mobileLayout ? 16 : 32
                 }
 
                 Row {
@@ -367,14 +369,14 @@ ApplicationWindow {
                     font: Fonts.secondaryText8bit
                     color: Colors.yellow100
                     anchors {
-                        rightMargin: 32
+                        rightMargin: mobileLayout ? 16 : 32
                         right: parent.right
                         verticalCenter: parent.verticalCenter
                     }
                 }
 
                 Text {
-                    visible: root.offlineMode || transactionControl.pendingSyncCount > 0
+                    visible: !mobileLayout && (root.offlineMode || transactionControl.pendingSyncCount > 0)
 
                     text: root.offlineMode
                         ? qsTr("[ OFFLINE ]")
@@ -437,7 +439,7 @@ ApplicationWindow {
             font: Fonts.text8bit
             color: Colors.secondaryGreen
             anchors{
-                leftMargin: 32
+                leftMargin: mobileLayout ? 16 : 32
                 left: parent.left
                 verticalCenter: footer.verticalCenter
             }
@@ -459,11 +461,12 @@ ApplicationWindow {
             property date currentTime: new Date()
 
             anchors{
-                rightMargin: 32
+                rightMargin: mobileLayout ? 16 : 32
                 right: parent.right
                 verticalCenter: footer.verticalCenter
             }
 
+            visible: !mobileLayout
             text: Qt.formatTime(currentTime, "HH:mm:ss")
             font: Fonts.text8bit
             color: Colors.yellow200

@@ -113,8 +113,45 @@ jobs:
           name: linux-build
           path: pixel-casino-linux.AppImage
 
+  build-android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar ferramentas Android
+        run: sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.3.6528147"
+
+      - name: Instalar Qt para Android
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: android
+          arch: android_arm64
+
+      - name: Build e empacotamento APK
+        run: |
+          qmake pixel-casino.pro CONFIG+=release
+          make -j"$(nproc)"
+          make apk
+          find . -type f -name "*.apk" -exec cp {} pixel-casino-android.apk \;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: pixel-casino-android.apk
+
   release:
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -129,3 +166,4 @@ jobs:
           files: |
             artifacts/windows-build/pixel-casino-windows.zip
             artifacts/linux-build/pixel-casino-linux.AppImage
+            artifacts/android-build/pixel-casino-android.apk

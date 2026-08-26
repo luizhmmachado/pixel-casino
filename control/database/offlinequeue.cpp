@@ -108,10 +108,11 @@ void OfflineQueue::setCachedBalance( double balance ) {
 
     QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
 
-    query.prepare( "INSERT INTO local_state (user_name, key, value) VALUES (:user, 'balance', :value) "
-                   "ON CONFLICT(user_name, key) DO UPDATE SET value = :value" );
+    query.prepare( "INSERT INTO local_state (user_name, key, value) VALUES (:user, 'balance', :insert_value) "
+                   "ON CONFLICT(user_name, key) DO UPDATE SET value = :update_value" );
     query.bindValue( ":user", _activeUser );
-    query.bindValue( ":value", QString::number( balance, 'f', 2 ) );
+    query.bindValue( ":insert_value", QString::number( balance, 'f', 2 ) );
+    query.bindValue( ":update_value", QString::number( balance, 'f', 2 ) );
 
     if ( !query.exec() ) {
         qWarning() << "OfflineQueue::setCachedBalance falhou:" << query.lastError().text();
