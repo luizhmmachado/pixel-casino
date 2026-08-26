@@ -141,6 +141,12 @@ jobs:
           target: android
           arch: android
 
+      - name: Selecionar Java 11 para o Gradle do Qt
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
       - name: Build e empacotamento APK
         run: |
           qmake pixel-casino.pro CONFIG+=release
