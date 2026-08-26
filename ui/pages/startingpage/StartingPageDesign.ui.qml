@@ -73,11 +73,11 @@ Item {
                 id: filtersDesktop
 
                 anchors {
-                    left: parent.left
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
 
+                width: implicitWidth
                 spacing: 16
                 flow: Flow.LeftToRight
 
