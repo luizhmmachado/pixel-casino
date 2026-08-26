@@ -24,6 +24,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
+          tools: tools_openssl_x64
 
       - name: Build
         run: |
@@ -35,6 +36,13 @@ jobs:
           mkdir deploy
           copy release\pixel-casino.exe deploy\
           windeployqt --qmldir . deploy\pixel-casino.exe
+
+      - name: Bundlar OpenSSL (QSslSocket carrega libssl/libcrypto em tempo de execução)
+        shell: pwsh
+        run: |
+          $dlls = Get-ChildItem -Path "$env:IQTA_TOOLS" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
+          if (-not $dlls) { throw "OpenSSL nao encontrado em $env:IQTA_TOOLS" }
+          $dlls | Copy-Item -Destination deploy\ -Force
 
       - name: Compactar
         run: Compress-Archive -Path deploy\* -DestinationPath pixel-casino-windows.zip
@@ -146,6 +154,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "11"
+
+      - name: Baixar OpenSSL para Android
+        run: git clone --depth 1 https://github.com/KDAB/android_openssl.git
 
       - name: Build e empacotamento APK
         run: |
