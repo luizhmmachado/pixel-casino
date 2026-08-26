@@ -24,6 +24,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
+          tools: tools_mingw1310
 
       - name: Build
         run: |
@@ -35,6 +36,14 @@ jobs:
           mkdir deploy
           copy release\pixel-casino.exe deploy\
           windeployqt --qmldir . deploy\pixel-casino.exe
+
+      - name: Bundlar OpenSSL (QSslSocket carrega libssl/libcrypto em tempo de execução)
+        shell: pwsh
+        run: |
+          $dlls = Get-ChildItem -Path "$env:IQTA_TOOLS" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
+          if (-not $dlls) { throw "OpenSSL 1.1.1 nao encontrado em $env:IQTA_TOOLS" }
+          $dlls | Group-Object Name | ForEach-Object { $_.Group[0] } | Copy-Item -Destination deploy\ -Force
+          Get-ChildItem deploy\lib*-1_1-x64.dll
 
       - name: Compactar
         run: Compress-Archive -Path deploy\* -DestinationPath pixel-casino-windows.zip
@@ -89,8 +98,8 @@ jobs:
 
       - name: Baixar linuxdeploy
         run: |
-          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-          wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+          wget --tries=5 --timeout=30 --waitretry=10 --retry-connrefused "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          wget --tries=5 --timeout=30 --waitretry=10 --retry-connrefused "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
       - name: Gerar AppImage
@@ -122,13 +131,16 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "11"
+          java-version: "17"
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Instalar ferramentas Android
-        run: sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.3.6528147"
+        run: |
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.3.6528147"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/21.3.6528147" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/21.3.6528147" >> "$GITHUB_ENV"
 
       - name: Instalar Qt para Android
         uses: jurplel/install-qt-action@v3
@@ -136,13 +148,27 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: linux
           target: android
-          arch: android_arm64
+          arch: android
+
+      - name: Selecionar Java 11 para o Gradle do Qt
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Baixar OpenSSL para Android
+        run: git clone --depth 1 https://github.com/KDAB/android_openssl.git
 
       - name: Build e empacotamento APK
         run: |
           qmake pixel-casino.pro CONFIG+=release
           make -j"$(nproc)"
-          make apk
+          make install INSTALL_ROOT=android-build
+          androiddeployqt \
+            --input android-pixel-casino-deployment-settings.json \
+            --output android-build \
+            --android-platform android-31 \
+            --apk android-build/pixel-casino.apk
           find . -type f -name "*.apk" -exec cp {} pixel-casino-android.apk \;
 
       - uses: actions/upload-artifact@v4
