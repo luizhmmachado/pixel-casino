@@ -150,8 +150,12 @@ QVector<OfflineQueue::PendingTransaction> OfflineQueue::pending() const {
 
     QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
 
-    query.prepare( "SELECT id, amount, type, description FROM pending_transactions WHERE user_name = :user ORDER BY id ASC" );
-    query.bindValue( ":user", _activeUser );
+    if ( !query.prepare( "SELECT id, amount, type, description FROM pending_transactions WHERE user_name = ? ORDER BY id ASC" ) ) {
+        qWarning() << "OfflineQueue::pending falhou ao preparar consulta:" << query.lastError().text();
+        return result;
+    }
+
+    query.bindValue( 0, _activeUser );
 
     if ( !query.exec() ) {
         qWarning() << "OfflineQueue::pending falhou:" << query.lastError().text();
