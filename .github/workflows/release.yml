@@ -24,8 +24,6 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-          # tools_openssl_x64 foi removido do repositorio da Qt; o pacote MinGW
-          # ainda traz as DLLs OpenSSL 1.1.1 exigidas pelo Qt 5.15.
           tools: tools_mingw1310
 
       - name: Build
