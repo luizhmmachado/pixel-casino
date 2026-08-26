@@ -16,12 +16,15 @@ Popup {
     property bool canConfirm: true
     property string errorText: ""
     property string successText: ""
+    property bool mobileLayout: popup.parent ? popup.parent.width < 700 : false
     property alias btnCancel: btnCancel
     property alias btnConfirm: btnConfirm
     property alias fldInput: fldInput
     property alias extraContent: clmExtraContent.data
 
-    width: Math.max( 360, cmpTitle.implicitWidth + 64 )
+    width: popup.parent && popup.parent.width < 700
+        ? popup.parent.width - 32
+        : Math.max( 360, cmpTitle.implicitWidth + 64 )
     height: popup.parent ? Math.min( clmContent.implicitHeight + 64, popup.parent.height - 64 ) : clmContent.implicitHeight + 64
     padding: 0
     modal: true
@@ -118,16 +121,17 @@ Popup {
                 text: popup.successText
             }
 
-            Row {
+            Grid {
                 id: rowButtons
                 width: parent.width
+                columns: popup.mobileLayout ? 1 : 2
                 spacing: 32
 
                 ComponentButton {
                     id: btnCancel
 
                     componentBtnText: popup.successText.length > 0 ? qsTr( "Fechar" ) : popup.componentCancelBtnText
-                    componentWidth: popup.successText.length > 0 ? parent.width : (parent.width - parent.spacing) / 2
+                    componentWidth: popup.successText.length > 0 || popup.mobileLayout ? parent.width : (parent.width - parent.spacing) / 2
                     visible: popup.canCancel || popup.successText.length > 0
                     componentBorderColor: Colors.error
                     componentTextColor: Colors.error
@@ -137,7 +141,7 @@ Popup {
                     id: btnConfirm
 
                     componentBtnText: popup.componentConfirmBtnText
-                    componentWidth: btnCancel.visible ? (parent.width - parent.spacing) / 2 : parent.width
+                    componentWidth: btnCancel.visible && !popup.mobileLayout ? (parent.width - parent.spacing) / 2 : parent.width
                     visible: popup.successText.length === 0
                     enabled: popup.canConfirm && (!popup.showInput || fldInput.componentValid)
                 }

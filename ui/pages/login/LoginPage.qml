@@ -62,13 +62,21 @@ Item {
         anchors.fill: parent
         color: Colors.background
 
+        Flickable {
+            anchors.fill: parent
+            anchors.margins: 16
+            clip: true
+            contentWidth: width
+            contentHeight: rctForm.height
+            interactive: contentHeight > height
+
         Rectangle {
             id: rctForm
 
-            width: parent.width < 700 ? parent.width - 32 : parent.width * 0.4
+            width: parent.width < 700 ? parent.width : parent.width * 0.4
             height: formColumn.implicitHeight + 128
-
-            anchors.centerIn: parent
+            x: (parent.width - width) / 2
+            y: parent.height < height + 32 ? 16 : (parent.height - height) / 2
 
             border.width: 2
             border.color: Colors.yellow100
@@ -218,6 +226,7 @@ Item {
 
 
             }
+        }
         }
     }
 

@@ -6,6 +6,8 @@ import Components 1.0
 Rectangle {
     id: rctDeposit
 
+    property bool mobileLayout: width < 700
+
     property string userName: ""
     property string userEmail: ""
     property string userBirthDate: ""
@@ -38,14 +40,15 @@ Rectangle {
             color: Colors.textColor
         }
 
-        Row {
+        Grid {
             width: parent.width
+            columns: mobileLayout ? 1 : 2
             spacing: 32
 
             Column {
                 id: clmData1
 
-                width: (parent.width - parent.spacing) / 2
+                width: mobileLayout ? parent.width : (parent.width - parent.spacing) / 2
                 spacing: 8
 
                 Row{
@@ -111,7 +114,7 @@ Rectangle {
             Column {
                 id: clmData2
 
-                width: (parent.width - parent.spacing) / 2
+                width: mobileLayout ? parent.width : (parent.width - parent.spacing) / 2
                 spacing: 8
 
                 Row {

@@ -11,6 +11,7 @@ Item {
 	property string titleText: qsTr("APOSTA:")
 	property string availableDisplayText: ""
 	property var quickBetLabels: []
+	property bool mobileLayout: width < 700
 
 	property alias inputBet: inputBet
 	property alias btnMinus: btnMinus
@@ -59,7 +60,7 @@ Item {
 				ComponentButton {
 					id: btnMinus
 
-					componentWidth: 52
+					componentWidth: mobileLayout ? 40 : 52
 					componentHeight: 52
 					componentBtnText: "-"
 					componentTextFont: Fonts.title8bit
@@ -107,7 +108,7 @@ Item {
 				ComponentButton {
 					id: btnPlus
 
-					componentWidth: 52
+					componentWidth: mobileLayout ? 40 : 52
 					componentHeight: 52
 					componentBtnText: "+"
 					componentTextFont: Fonts.title8bit
@@ -125,11 +126,13 @@ Item {
 				height: 32
 			}
 
-			Row {
+			Flow {
 				id: quickBetRow
 
+				width: parent.width
 				anchors.horizontalCenter: parent.horizontalCenter
 				spacing: 10
+				layoutDirection: Qt.LeftToRight
 
 				Repeater {
 					model: root.quickBetLabels
@@ -158,7 +161,7 @@ Item {
 
 			ComponentButton {
 				anchors.horizontalCenter: parent.horizontalCenter
-				componentWidth: quickBetRow.implicitWidth
+				componentWidth: Math.min( quickBetRow.implicitWidth, parent.width )
 				componentHeight: 36
 				componentBtnText: qsTr("[ MAX  ]")
 				componentTextFont: Fonts.secondaryText8bit
