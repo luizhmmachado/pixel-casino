@@ -54,7 +54,7 @@ Item {
             rightMargin: mobileLayout ? 16 : 32
         }
 
-        height: mobileLayout ? 112 : 48
+        height: Math.max(48, filtersDesktop.implicitHeight)
 
         Text {
             text: qsTr("[ SELECIONE SEU JOGO ]")
@@ -66,18 +66,19 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            height: 48
+            height: filtersDesktop.implicitHeight
 
-            Row {
+            Flow {
+                id: filtersDesktop
+
                 anchors {
-                    right: mobileLayout ? undefined : parent.right
-                    left: mobileLayout ? parent.left : undefined
-                    top: mobileLayout ? parent.top : undefined
-                    verticalCenter: mobileLayout ? undefined : parent.verticalCenter
-                    topMargin: mobileLayout ? 48 : 0
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
                 }
 
-                spacing: mobileLayout ? 8 : 16
+                spacing: 16
+                flow: Flow.LeftToRight
 
                 Repeater {
                     model: gameCategories
@@ -146,7 +147,7 @@ Item {
         id: gamesFlickable
 
         anchors {
-            top: rowButtons.bottom
+            top: mobileLayout ? rowButtons.bottom : rowButtonsDesktop.bottom
             bottom: parent.bottom
             left: parent.left
             right: parent.right
