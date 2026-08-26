@@ -69,7 +69,7 @@ Item {
             height: 48
             Layout.alignment: Qt.AlignVCenter
 
-            Flow {
+            Row {
                 id: filtersDesktop
 
                 anchors {
@@ -77,9 +77,7 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
 
-                width: implicitWidth
                 spacing: 16
-                flow: Flow.LeftToRight
 
                 Repeater {
                     model: gameCategories
