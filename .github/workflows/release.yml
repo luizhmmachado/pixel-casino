@@ -128,7 +128,10 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Instalar ferramentas Android
-        run: sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.3.6528147"
+        run: |
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0" "ndk;21.3.6528147"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/21.3.6528147" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/21.3.6528147" >> "$GITHUB_ENV"
 
       - name: Instalar Qt para Android
         uses: jurplel/install-qt-action@v3
