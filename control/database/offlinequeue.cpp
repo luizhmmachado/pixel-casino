@@ -71,6 +71,22 @@ void OfflineQueue::ensureSchema() {
         return;
     }
 
+    bool hasTransactionUser = false;
+    if ( query.exec( "PRAGMA table_info(pending_transactions)" ) ) {
+        while ( query.next() ) {
+            if ( query.value( 1 ).toString() == "user_name" ) {
+                hasTransactionUser = true;
+                break;
+            }
+        }
+    }
+
+    if ( !hasTransactionUser && !query.exec( "ALTER TABLE pending_transactions ADD COLUMN user_name TEXT NOT NULL DEFAULT ''" ) ) {
+        qWarning() << "OfflineQueue: falha ao atualizar schema de transações:" << query.lastError().text();
+        _ready = false;
+        return;
+    }
+
     _ready = true;
 }
 
@@ -80,6 +96,18 @@ bool OfflineQueue::isReady() const {
 
 void OfflineQueue::setActiveUser( const QString& userName ) {
     _activeUser = userName.trimmed().toLower();
+
+    if ( !_ready || _activeUser.isEmpty() ) {
+        return;
+    }
+
+    QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
+    query.prepare( "UPDATE pending_transactions SET user_name = ? WHERE user_name = ''" );
+    query.bindValue( 0, _activeUser );
+
+    if ( !query.exec() ) {
+        qWarning() << "OfflineQueue::setActiveUser falhou ao migrar transações:" << query.lastError().text();
+    }
 }
 
 double OfflineQueue::cachedBalance() const {

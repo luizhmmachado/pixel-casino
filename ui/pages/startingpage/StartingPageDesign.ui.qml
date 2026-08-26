@@ -171,7 +171,7 @@ Item {
 
                 StartingPageGameCard {
                     width: mobileLayout ? gamesGrid.width : (gamesGrid.width - gamesGrid.spacing) / 2
-                    height: 240
+                    height: Math.max(240, implicitHeight)
 
                     gameName: modelData.name
                     gameCategory: modelData.category

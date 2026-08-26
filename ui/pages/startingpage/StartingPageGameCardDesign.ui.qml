@@ -6,6 +6,8 @@ import Components 1.0
 Rectangle {
     id: rctGameCard
 
+    implicitHeight: txtGameDescription.y + txtGameDescription.implicitHeight + 52
+
     property string gameName: ""
     property string gameDescription: ""
     property string gameCategory: ""
@@ -47,7 +49,7 @@ Rectangle {
     Text {
         id: txtGameCategory
 
-        width: rctGameCard.width
+        width: rctGameCard.width - 32
         text: gameCategory
         font: Fonts.secondaryText8bit
         color: Colors.secondaryGreen
@@ -63,10 +65,11 @@ Rectangle {
     Text {
         id: txtGameName
 
-        width: rctGameCard.width
+        width: rctGameCard.width - 32
         text: gameName
         font: Fonts.text8bit
         color: Colors.yellow200
+        wrapMode: Text.WordWrap
 
         anchors {
             top: txtGameCategory.bottom
@@ -79,7 +82,7 @@ Rectangle {
     Text {
         id: txtGameDescription
 
-        width: rctGameCard.width
+        width: rctGameCard.width - 32
         text: gameDescription
         font: Fonts.secondaryText8bit
         color: Colors.secondaryGreen
