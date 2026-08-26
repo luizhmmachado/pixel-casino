@@ -54,7 +54,7 @@ Item {
             rightMargin: mobileLayout ? 16 : 32
         }
 
-        height: Math.max(48, filtersDesktop.implicitHeight)
+        height: 48
 
         Text {
             text: qsTr("[ SELECIONE SEU JOGO ]")
@@ -66,7 +66,8 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            height: filtersDesktop.implicitHeight
+            height: 48
+            Layout.alignment: Qt.AlignVCenter
 
             Flow {
                 id: filtersDesktop
@@ -74,7 +75,7 @@ Item {
                 anchors {
                     left: parent.left
                     right: parent.right
-                    top: parent.top
+                    verticalCenter: parent.verticalCenter
                 }
 
                 spacing: 16
