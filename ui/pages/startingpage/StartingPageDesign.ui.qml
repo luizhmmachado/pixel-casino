@@ -6,6 +6,8 @@ import Colors 1.0
 import Components 1.0
 
 Item {
+    property bool mobileLayout: width < 700
+
     anchors.fill: parent
 
     Rectangle {
@@ -20,7 +22,7 @@ Item {
         anchors {
             horizontalCenter: parent.horizontalCenter
             top: parent.top
-            topMargin: 64
+            topMargin: mobileLayout ? 24 : 64
         }
     }
 
@@ -34,37 +36,49 @@ Item {
         anchors {
             horizontalCenter: parent.horizontalCenter
             top: lblTitle.top
-            topMargin: 64
+            topMargin: mobileLayout ? 48 : 64
         }
     }
 
     RowLayout {
-        id: rowButtons
+        id: rowButtonsDesktop
+
+        visible: !mobileLayout
 
         anchors {
             top: txtSecondary.bottom
-            topMargin: 64
+            topMargin: mobileLayout ? 24 : 64
             left: parent.left
             right: parent.right
-            leftMargin: 32
-            rightMargin: 32
+            leftMargin: mobileLayout ? 16 : 32
+            rightMargin: mobileLayout ? 16 : 32
         }
 
         height: 48
 
         Text {
+            id: subtitleDesktop
+
             text: qsTr("[ SELECIONE SEU JOGO ]")
             font: Fonts.text8bit
             color: Colors.yellow100
+            elide: Text.ElideRight
 
-            Layout.alignment: Qt.AlignVCenter
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: Math.max(0, rowButtonsDesktop.width - filtersDesktop.implicitWidth - 16)
+            Layout.alignment: mobileLayout ? Qt.AlignLeft : Qt.AlignVCenter
         }
 
         Item {
-            Layout.fillWidth: true
+            Layout.preferredWidth: filtersDesktop.implicitWidth
+            Layout.minimumWidth: filtersDesktop.implicitWidth
             height: 48
+            Layout.alignment: Qt.AlignVCenter
 
             Row {
+                id: filtersDesktop
+
                 anchors {
                     right: parent.right
                     verticalCenter: parent.verticalCenter
@@ -91,35 +105,98 @@ Item {
         }
     }
 
+    Column {
+        id: rowButtons
 
-    Grid {
-        id: gamesGrid
-
-        columns: 2
-        spacing: 32
+        visible: mobileLayout
+        spacing: 16
 
         anchors {
-            top: rowButtons.bottom
-            topMargin: 64
+            top: txtSecondary.bottom
+            topMargin: 24
             left: parent.left
             right: parent.right
-            leftMargin: 32
-            rightMargin: 32
+            leftMargin: 16
+            rightMargin: 16
         }
 
-        Repeater {
-            model: filteredGames
+        Text {
+            text: qsTr("[ SELECIONE SEU JOGO ]")
+            font: Fonts.text8bit
+            color: Colors.yellow100
+        }
 
-            StartingPageGameCard {
-                width: (gamesGrid.width - gamesGrid.spacing) / 2
-                height: 240
+        Flow {
+            width: parent.width
+            spacing: 8
 
-                gameName: modelData.name
-                gameCategory: modelData.category
-                gameDescription: modelData.description
-                gameImage: modelData.image
+            Repeater {
+                model: gameCategories
 
-                onClicked: root.selectedIndex = model.index
+                ComponentButton {
+                    componentBtnText: modelData
+                    componentHeight: 48
+                    componentWidth: btnText.contentWidth + 16
+                    componentEnabledColor: Colors.background
+                    componentDisabledColor: Colors.background
+                    componentBorderColor: root.selectedCategory === model.index ? Colors.yellow100 : Colors.secondaryGreen
+                    componentTextColor: root.selectedCategory === model.index ? Colors.yellow100 : Colors.secondaryGreen
+
+                    onClicked: selectedCategory = model.index
+                }
+            }
+        }
+    }
+
+
+    Flickable {
+        id: gamesFlickable
+
+        anchors {
+            top: mobileLayout ? rowButtons.bottom : rowButtonsDesktop.bottom
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+
+        contentWidth: width
+        contentHeight: gamesGrid.y + gamesGrid.height
+        clip: true
+        interactive: mobileLayout
+
+        Grid {
+            id: gamesGrid
+
+            property real uniformCardHeight: {
+                var maxHeight = 240
+
+                for (var childIndex = 0; childIndex < children.length; childIndex++) {
+                    maxHeight = Math.max(maxHeight, children[childIndex].implicitHeight)
+                }
+
+                return maxHeight
+            }
+
+            x: mobileLayout ? 16 : 32
+            y: mobileLayout ? 24 : 64
+            width: gamesFlickable.width - (mobileLayout ? 32 : 64)
+            columns: mobileLayout ? 1 : 2
+            spacing: mobileLayout ? 16 : 32
+
+            Repeater {
+                model: filteredGames
+
+                StartingPageGameCard {
+                    width: mobileLayout ? gamesGrid.width : (gamesGrid.width - gamesGrid.spacing) / 2
+                    height: gamesGrid.uniformCardHeight
+
+                    gameName: modelData.name
+                    gameCategory: modelData.category
+                    gameDescription: modelData.description
+                    gameImage: modelData.image
+
+                    onClicked: root.selectedIndex = model.index
+                }
             }
         }
     }

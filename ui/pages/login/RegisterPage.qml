@@ -8,6 +8,8 @@ import Components 1.0
 
 Item {
     id: root
+
+    property bool mobileLayout: width < 700
     anchors.fill: parent
 
     signal login
@@ -175,11 +177,20 @@ Item {
         anchors.fill: parent
         color: Colors.background
 
+        Flickable {
+            anchors.fill: parent
+            anchors.margins: 16
+            clip: true
+            contentWidth: width
+            contentHeight: rctForm.height
+            interactive: contentHeight > height
+
         Rectangle {
             id: rctForm
-            width: parent.width * 0.6
+            width: parent.width < 700 ? parent.width : parent.width * 0.6
             height: formColumn.implicitHeight + 128
-            anchors.centerIn: parent
+            x: (parent.width - width) / 2
+            y: parent.height < height + 32 ? 16 : (parent.height - height) / 2
             border.width: 2
             border.color: Colors.yellow100
             color: Colors.primary
@@ -253,12 +264,13 @@ Item {
                     }
                 }
 
-                Row {
+                Grid {
                     width: parent.width
+                    columns: root.mobileLayout ? 1 : 2
                     spacing: 16
 
                     Column {
-                        width: (parent.width - 16) / 2
+                        width: root.mobileLayout ? parent.width : (parent.width - 16) / 2
                         spacing: 8
 
                         Text {
@@ -310,7 +322,7 @@ Item {
                     }
 
                     Column {
-                        width: (parent.width - 16) / 2
+                        width: root.mobileLayout ? parent.width : (parent.width - 16) / 2
                         spacing: 8
 
                         Text {
@@ -362,12 +374,13 @@ Item {
                     }
                 }
 
-                Row {
+                Grid {
                     width: parent.width
+                    columns: root.mobileLayout ? 1 : 2
                     spacing: 16
 
                     Column {
-                        width: (parent.width - 16) / 2
+                        width: root.mobileLayout ? parent.width : (parent.width - 16) / 2
                         spacing: 8
 
                         Text {
@@ -395,7 +408,7 @@ Item {
                     }
 
                     Column {
-                        width: (parent.width - 16) / 2
+                        width: root.mobileLayout ? parent.width : (parent.width - 16) / 2
                         spacing: 8
 
                         Text {
@@ -511,6 +524,7 @@ Item {
                     }
                 }
             }
+        }
         }
     }
 

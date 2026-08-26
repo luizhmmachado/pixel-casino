@@ -10,6 +10,7 @@ Item {
     anchors.fill: parent
 
     property string userBalance: ""
+    property bool mobileLayout: width < 700
     property alias horseSelection: horseSelection
     property alias horseRace: horseRace
     property alias horsePopup: horsePopup
@@ -35,7 +36,7 @@ Item {
             HorseSelection{
                 id: horseSelection
 
-                width: ( parent.width / 3 ) * 2
+                width: root.mobileLayout ? parent.width : ( parent.width / 3 ) * 2
                 height: parent.height - title.height
                 horsesList: control.horsesList
                 betValue.availableBalance: root.userBalance
@@ -55,7 +56,7 @@ Item {
             ComponentPopupConfirmation {
                 id: horsePopup
 
-                width: parent.width / 2
+                width: root.mobileLayout ? parent.width - 32 : parent.width / 2
                 canCancel: false
                 showInput: false
                 componentConfirmBtnText: qsTr("Apostar novamente")

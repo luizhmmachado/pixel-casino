@@ -10,6 +10,7 @@ Item {
     anchors.fill: parent
 
     property string userBalance: ""
+    property bool mobileLayout: width < 700
     property alias betValue: betValue
     property alias blackjackCards: blackjackCards
     property alias btnBuy: btnBuy
@@ -53,7 +54,7 @@ Item {
                     id: betValue
 
                     availableBalance: root.userBalance
-                    width: ( parent.width / 3 ) * 2
+                    width: root.mobileLayout ? parent.width : ( parent.width / 3 ) * 2
                     height: betValue.implicitHeight
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -61,7 +62,7 @@ Item {
                 BlackJackCards {
                     id: blackjackCards
 
-                    width: ( parent.width / 3 ) * 2
+                    width: root.mobileLayout ? parent.width : ( parent.width / 3 ) * 2
                     height: 340
                     anchors.horizontalCenter: parent.horizontalCenter
                 }

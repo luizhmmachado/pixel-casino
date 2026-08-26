@@ -6,6 +6,8 @@ import Components 1.0
 Rectangle {
     id: rctDeposit
 
+    property bool mobileLayout: width < 700
+
     property bool canWithdraw: false
 
     color: Colors.primary
@@ -43,15 +45,19 @@ Rectangle {
             height: 16
         }
 
-        Row {
+        Grid {
+            columns: mobileLayout ? 1 : 2
             spacing: 32
+            width: parent.width
 
             ComponentButton {
+                componentWidth: mobileLayout ? parent.width : btnText.contentWidth + 16
                 componentBtnText: qsTr( "[ DEPOSITAR ]")
             }
 
             ComponentButton {
                 id: btnWithdraw
+                componentWidth: mobileLayout ? parent.width : btnText.contentWidth + 16
                 componentBtnText: qsTr( "[ SACAR ]")
                 enabled: canWithdraw
             }

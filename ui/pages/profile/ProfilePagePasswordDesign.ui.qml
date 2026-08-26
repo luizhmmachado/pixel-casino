@@ -7,6 +7,8 @@ import ProfileControl 1.0
 Rectangle {
     id: rctDeposit
 
+    property bool mobileLayout: width < 700
+
     property string userName: ""
     property string userEmail: ""
     property string userBirthDate: ""
@@ -85,12 +87,13 @@ Rectangle {
                     componentValid: text.length > 0 && acceptableInput
                 }
 
-                Row {
+                Grid {
                     width: parent.width
+                    columns: mobileLayout ? 1 : 2
                     spacing: 16
 
                     Column {
-                        width: parent.width / 2
+                        width: mobileLayout ? parent.width : (parent.width - parent.spacing) / 2
                         spacing: 8
 
                         Text {
@@ -112,7 +115,7 @@ Rectangle {
                     }
 
                     Column {
-                        width: parent.width / 2
+                        width: mobileLayout ? parent.width : (parent.width - parent.spacing) / 2
                         spacing: 8
 
                         Text {

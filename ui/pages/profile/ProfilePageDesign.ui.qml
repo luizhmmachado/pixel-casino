@@ -21,6 +21,7 @@ Item {
     property int userAvatarIndex: 0
     property int userAvatarColorIndex: 0
     property bool canWithdraw: false
+    property bool mobileLayout: width < 700
     property alias btnExit: btnExit
     property alias profileCard: profileCard
     property alias profileData: profileData
@@ -58,15 +59,16 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
-                Row {
+                Grid {
                     id: rowProfileCard
 
+                    columns: mobileLayout ? 1 : 2
                     spacing: 32
                     width: parent.width
 
                     Column {
                         id: colProfile
-                        width: profileCard.width
+                        width: mobileLayout ? parent.width : profileCard.width
                         anchors.margins: 32
                         spacing: 32
 
@@ -95,7 +97,7 @@ Item {
 
                     Column {
                         spacing: 32
-                        width: rowProfileCard.width - colProfile.width - rowProfileCard.spacing
+                        width: mobileLayout ? rowProfileCard.width : rowProfileCard.width - colProfile.width - rowProfileCard.spacing
 
                         ProfilePageBalance {
                             width: parent.width
@@ -178,55 +180,45 @@ Item {
         anchors.centerIn: parent
 
         extraContent: [
-        Repeater {
-            model: popupSelectAvatar.avatarNames.length
+        Grid {
+            width: parent.width
+            columns: popupSelectAvatar.mobileLayout ? 2 : Colors.avatarColors.length
+            spacing: 8
 
-            delegate: Row {
-                id: rowAvatar
+            Repeater {
+                model: popupSelectAvatar.avatarNames.length * Colors.avatarColors.length
 
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8
+                delegate: Rectangle {
+                    property int avatarIdx: Math.floor(index / Colors.avatarColors.length)
+                    property int colorIdx: index % Colors.avatarColors.length
 
-                property int avatarIdx: index
+                    width: popupSelectAvatar.mobileLayout ? (parent.width - 8) / 2 : 136
+                    height: width
+                    radius: 4
+                    color: "transparent"
+                    border.width: popupSelectAvatar.selectedAvatarIndex === avatarIdx && popupSelectAvatar.selectedColorIndex === colorIdx ? 3 : 0
+                    border.color: Colors.secondaryGreen
 
-                Repeater {
-                    model: Colors.avatarColors.length
+                    Image {
+                        id: imgAvatarOption
+                        anchors.centerIn: parent
+                        width: parent.width - 8
+                        height: parent.height - 8
+                        source: "qrc:/resources/images/avatar/" + popupSelectAvatar.avatarNames[avatarIdx] + "-avatar.svg"
+                        visible: false
+                    }
 
-                    delegate: Rectangle {
-                        id: rctAvatarColor
+                    ColorOverlay {
+                        anchors.fill: imgAvatarOption
+                        source: imgAvatarOption
+                        color: Colors.avatarColors[colorIdx]
+                    }
 
-                        property int colorIdx: index
-
-                        width: 136
-                        height: 136
-                        radius: 4
-                        color: "transparent"
-                        border.width: ( popupSelectAvatar.selectedAvatarIndex === rowAvatar.avatarIdx && popupSelectAvatar.selectedColorIndex === colorIdx ) ? 3 : 0
-                        border.color: Colors.secondaryGreen
-
-                        Image {
-                            id: imgAvatarOption
-
-                            anchors.centerIn: parent
-                            width: 128
-                            height: 128
-                            source: "qrc:/resources/images/avatar/" + popupSelectAvatar.avatarNames[ rowAvatar.avatarIdx ] + "-avatar.svg"
-                            visible: false
-                        }
-
-                        ColorOverlay {
-                            anchors.fill: imgAvatarOption
-                            source: imgAvatarOption
-                            color: Colors.avatarColors[ colorIdx ]
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-
-                            onClicked: {
-                                popupSelectAvatar.selectedAvatarIndex = rowAvatar.avatarIdx
-                                popupSelectAvatar.selectedColorIndex = colorIdx
-                            }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            popupSelectAvatar.selectedAvatarIndex = avatarIdx
+                            popupSelectAvatar.selectedColorIndex = colorIdx
                         }
                     }
                 }

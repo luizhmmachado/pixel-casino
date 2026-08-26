@@ -71,6 +71,22 @@ void OfflineQueue::ensureSchema() {
         return;
     }
 
+    bool hasTransactionUser = false;
+    if ( query.exec( "PRAGMA table_info(pending_transactions)" ) ) {
+        while ( query.next() ) {
+            if ( query.value( 1 ).toString() == "user_name" ) {
+                hasTransactionUser = true;
+                break;
+            }
+        }
+    }
+
+    if ( !hasTransactionUser && !query.exec( "ALTER TABLE pending_transactions ADD COLUMN user_name TEXT NOT NULL DEFAULT ''" ) ) {
+        qWarning() << "OfflineQueue: falha ao atualizar schema de transações:" << query.lastError().text();
+        _ready = false;
+        return;
+    }
+
     _ready = true;
 }
 
@@ -80,6 +96,18 @@ bool OfflineQueue::isReady() const {
 
 void OfflineQueue::setActiveUser( const QString& userName ) {
     _activeUser = userName.trimmed().toLower();
+
+    if ( !_ready || _activeUser.isEmpty() ) {
+        return;
+    }
+
+    QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
+    query.prepare( "UPDATE pending_transactions SET user_name = ? WHERE user_name = ''" );
+    query.bindValue( 0, _activeUser );
+
+    if ( !query.exec() ) {
+        qWarning() << "OfflineQueue::setActiveUser falhou ao migrar transações:" << query.lastError().text();
+    }
 }
 
 double OfflineQueue::cachedBalance() const {
@@ -108,10 +136,11 @@ void OfflineQueue::setCachedBalance( double balance ) {
 
     QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
 
-    query.prepare( "INSERT INTO local_state (user_name, key, value) VALUES (:user, 'balance', :value) "
-                   "ON CONFLICT(user_name, key) DO UPDATE SET value = :value" );
+    query.prepare( "INSERT INTO local_state (user_name, key, value) VALUES (:user, 'balance', :insert_value) "
+                   "ON CONFLICT(user_name, key) DO UPDATE SET value = :update_value" );
     query.bindValue( ":user", _activeUser );
-    query.bindValue( ":value", QString::number( balance, 'f', 2 ) );
+    query.bindValue( ":insert_value", QString::number( balance, 'f', 2 ) );
+    query.bindValue( ":update_value", QString::number( balance, 'f', 2 ) );
 
     if ( !query.exec() ) {
         qWarning() << "OfflineQueue::setCachedBalance falhou:" << query.lastError().text();
@@ -149,8 +178,12 @@ QVector<OfflineQueue::PendingTransaction> OfflineQueue::pending() const {
 
     QSqlQuery query( QSqlDatabase::database( CONNECTION_NAME ) );
 
-    query.prepare( "SELECT id, amount, type, description FROM pending_transactions WHERE user_name = :user ORDER BY id ASC" );
-    query.bindValue( ":user", _activeUser );
+    if ( !query.prepare( "SELECT id, amount, type, description FROM pending_transactions WHERE user_name = ? ORDER BY id ASC" ) ) {
+        qWarning() << "OfflineQueue::pending falhou ao preparar consulta:" << query.lastError().text();
+        return result;
+    }
+
+    query.bindValue( 0, _activeUser );
 
     if ( !query.exec() ) {
         qWarning() << "OfflineQueue::pending falhou:" << query.lastError().text();
