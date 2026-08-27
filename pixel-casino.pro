@@ -26,6 +26,10 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+android {
+    exists($$PWD/android_openssl/openssl.pri): include($$PWD/android_openssl/openssl.pri)
+}
+
 HEADERS += \
     control/blackjack/blackjackcontrol.h \
     control/database/databasecontrol.h \

@@ -44,6 +44,12 @@ ApplicationWindow {
     visible: true
     title: qsTr("Pixel Casino")
 
+    Binding {
+        target: Fonts
+        property: "mobile"
+        value: root.mobileLayout
+    }
+
     onLoaderComponentChanged: isNonReturnable()
     onLoading: function(show) {
         setRequestLoading(show)
@@ -438,6 +444,7 @@ ApplicationWindow {
             text: _getPageTitle()
             font: Fonts.text8bit
             color: Colors.secondaryGreen
+            visible: !mobileLayout
             anchors{
                 leftMargin: mobileLayout ? 16 : 32
                 left: parent.left
