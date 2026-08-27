@@ -148,7 +148,7 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: linux
           target: android
-          arch: android_arm64_v8a
+          arch: android
 
       - name: Selecionar Java 8 para o Gradle do Qt 5.15.2
         uses: actions/setup-java@v4
@@ -166,8 +166,11 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-23 \
-            -DCMAKE_PREFIX_PATH="$Qt5_DIR/lib/cmake" \
-            -DQt5_DIR="$Qt5_DIR/lib/cmake/Qt5"
+            -DCMAKE_PREFIX_PATH="$Qt5_DIR" \
+            -DQt5_DIR="$Qt5_DIR/lib/cmake/Qt5" \
+            -DQt5Quick_DIR="$Qt5_DIR/lib/cmake/Qt5Quick" \
+            -DQt5Qml_DIR="$Qt5_DIR/lib/cmake/Qt5Qml" \
+            -DQt5Svg_DIR="$Qt5_DIR/lib/cmake/Qt5Svg"
           cmake --build build-android --parallel "$(nproc)"
           cmake --install build-android --prefix android-build
           androiddeployqt \
