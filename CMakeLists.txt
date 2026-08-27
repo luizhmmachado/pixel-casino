@@ -137,8 +137,8 @@ if(ANDROID)
     endif()
 
     set(ANDROID_STL_PATH "")
-    if(ANDROID_NDK_ROOT)
-        set(ANDROID_STL_PATH "${ANDROID_NDK_ROOT}/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so")
+    if(ANDROID_NDK_ROOT AND ANDROID_NDK_HOST)
+        set(ANDROID_STL_PATH "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST}/sysroot/usr/lib")
     endif()
 
     configure_file(
