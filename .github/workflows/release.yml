@@ -34,12 +34,21 @@ jobs:
           $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           if (-not $vsPath) { throw "Visual Studio Build Tools nao encontrados" }
           $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
-          cmd /c "\"$vcvars\" && cmake -S . -B build -G \"Ninja Multi-Config\" -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release --parallel"
+          @"
+          call "$vcvars"
+          cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          "@ | Set-Content -Path build-windows.bat
+          cmd /c build-windows.bat
 
       - name: Empacotar (windeployqt)
         run: |
           mkdir deploy
-          copy build\Release\pixel-casino.exe deploy\
+          if (Test-Path build\Release\pixel-casino.exe) {
+            copy build\Release\pixel-casino.exe deploy\
+          } else {
+            copy build\pixel-casino.exe deploy\
+          }
           windeployqt --qmldir . deploy\pixel-casino.exe
 
       - name: Bundlar OpenSSL (QSslSocket carrega libssl/libcrypto em tempo de execução)
