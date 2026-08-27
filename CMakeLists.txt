@@ -113,6 +113,25 @@ install(TARGETS pixel-casino
 if(ANDROID)
     set_property(TARGET pixel-casino PROPERTY QT_ANDROID_MIN_SDK_VERSION 23)
     set_property(TARGET pixel-casino PROPERTY QT_ANDROID_TARGET_SDK_VERSION 31)
+
+    set(ANDROID_SDK_ROOT "$ENV{ANDROID_SDK_ROOT}")
+    if(NOT ANDROID_SDK_ROOT)
+        set(ANDROID_SDK_ROOT "$ENV{ANDROID_HOME}")
+    endif()
+
+    set(ANDROID_NDK_ROOT "$ENV{ANDROID_NDK_ROOT}")
+    if(NOT ANDROID_NDK_ROOT)
+        set(ANDROID_NDK_ROOT "$ENV{ANDROID_NDK_HOME}")
+    endif()
+
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+        set(ANDROID_NDK_HOST "linux-x86_64")
+    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+        set(ANDROID_NDK_HOST "darwin-x86_64")
+    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        set(ANDROID_NDK_HOST "windows-x86_64")
+    endif()
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android-pixel-casino-deployment-settings.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/android-pixel-casino-deployment-settings.json
