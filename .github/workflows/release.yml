@@ -148,7 +148,7 @@ jobs:
           version: ${{ env.QT_VERSION }}
           host: linux
           target: android
-          arch: android
+          arch: android_arm64_v8a
 
       - name: Selecionar Java 8 para o Gradle do Qt 5.15.2
         uses: actions/setup-java@v4
