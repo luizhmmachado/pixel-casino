@@ -52,17 +52,25 @@ target_link_libraries(pixel-casino PRIVATE
 
 if(ANDROID)
     find_library(ANDROID_LIB android)
+    find_library(DL_LIB dl)
     find_library(EGL_LIB EGL)
     find_library(GLESV2_LIB GLESv2)
     find_library(LOG_LIB log)
+    find_library(M_LIB m)
     find_library(Z_LIB z)
     find_library(CPP_SHARED_LIB c++_shared)
 
+    # Qt shared libraries pull these transitively; keep them even if
+    # the app itself doesn't reference their symbols directly.
+    target_link_options(pixel-casino PRIVATE "-Wl,--no-as-needed")
+
     target_link_libraries(pixel-casino PRIVATE
         ${ANDROID_LIB}
+        ${DL_LIB}
         ${EGL_LIB}
         ${GLESV2_LIB}
         ${LOG_LIB}
+        ${M_LIB}
         ${Z_LIB}
         ${CPP_SHARED_LIB}
     )
