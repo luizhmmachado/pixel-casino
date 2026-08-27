@@ -34,7 +34,11 @@ set(PROJECT_SOURCES
     resources.qrc
 )
 
-add_executable(pixel-casino ${PROJECT_SOURCES})
+if(ANDROID)
+    add_library(pixel-casino SHARED ${PROJECT_SOURCES})
+else()
+    add_executable(pixel-casino ${PROJECT_SOURCES})
+endif()
 
 if(ANDROID AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/android_openssl/android_openssl.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/android_openssl/android_openssl.cmake")
