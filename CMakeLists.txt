@@ -50,6 +50,18 @@ target_link_libraries(pixel-casino PRIVATE
     Qt5::Svg
 )
 
+if(ANDROID)
+    find_library(EGL_LIB EGL)
+    find_library(GLESV2_LIB GLESv2)
+    find_library(Z_LIB z)
+
+    target_link_libraries(pixel-casino PRIVATE
+        ${EGL_LIB}
+        ${GLESV2_LIB}
+        ${Z_LIB}
+    )
+endif()
+
 install(TARGETS pixel-casino
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
