@@ -174,6 +174,7 @@ jobs:
             -DQt5Qml_DIR="$Qt5_DIR/lib/cmake/Qt5Qml" \
             -DQt5QmlModels_DIR="$Qt5_DIR/lib/cmake/Qt5QmlModels" \
             -DQt5Network_DIR="$Qt5_DIR/lib/cmake/Qt5Network" \
+            -DQt5Sql_DIR="$Qt5_DIR/lib/cmake/Qt5Sql" \
             -DQt5Svg_DIR="$Qt5_DIR/lib/cmake/Qt5Svg"
           cmake --build build-android --parallel "$(nproc)"
           cmake --install build-android --prefix android-build
