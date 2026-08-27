@@ -36,6 +36,11 @@ set(PROJECT_SOURCES
 
 add_executable(pixel-casino ${PROJECT_SOURCES})
 
+if(ANDROID AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/android_openssl/android_openssl.cmake")
+    include("${CMAKE_CURRENT_SOURCE_DIR}/android_openssl/android_openssl.cmake")
+    add_android_openssl_libraries(pixel-casino)
+endif()
+
 target_include_directories(pixel-casino PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(pixel-casino PRIVATE

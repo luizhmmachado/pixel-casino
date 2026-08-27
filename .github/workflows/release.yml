@@ -24,10 +24,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-
-      - name: Instalar OpenSSL 1.1
-        shell: pwsh
-        run: choco install openssl.light --version=1.1.1.7 --no-progress -y
+          tools: tools_opensslv3_x64
 
       - name: Build
         run: |
@@ -43,10 +40,10 @@ jobs:
       - name: Bundlar OpenSSL (QSslSocket carrega libssl/libcrypto em tempo de execução)
         shell: pwsh
         run: |
-          $dlls = Get-ChildItem -Path "$env:ProgramFiles", "$env:ProgramData\chocolatey\lib" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
-          if (-not $dlls) { throw "OpenSSL 1.1.1 nao encontrado apos a instalacao" }
+          $dlls = Get-ChildItem -Path "$env:IQTA_TOOLS" -Recurse -Include libssl-3-x64.dll, libcrypto-3-x64.dll -ErrorAction SilentlyContinue
+          if (-not $dlls) { throw "OpenSSL 3 nao encontrado em $env:IQTA_TOOLS" }
           $dlls | Group-Object Name | ForEach-Object { $_.Group[0] } | Copy-Item -Destination deploy\ -Force
-          Get-ChildItem deploy\lib*-1_1-x64.dll
+          Get-ChildItem deploy\lib*-3-x64.dll
 
       - name: Compactar
         run: Compress-Archive -Path deploy\* -DestinationPath pixel-casino-windows.zip
@@ -153,11 +150,11 @@ jobs:
           target: android
           arch: android
 
-      - name: Selecionar Java 11 para o Gradle do Qt
+      - name: Selecionar Java 8 para o Gradle do Qt 5.15.2
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "11"
+          java-version: "8"
 
       - name: Baixar OpenSSL para Android
         run: git clone --depth 1 https://github.com/KDAB/android_openssl.git
