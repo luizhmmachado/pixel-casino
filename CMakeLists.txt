@@ -51,14 +51,20 @@ target_link_libraries(pixel-casino PRIVATE
 )
 
 if(ANDROID)
+    find_library(ANDROID_LIB android)
     find_library(EGL_LIB EGL)
     find_library(GLESV2_LIB GLESv2)
+    find_library(LOG_LIB log)
     find_library(Z_LIB z)
+    find_library(CPP_SHARED_LIB c++_shared)
 
     target_link_libraries(pixel-casino PRIVATE
+        ${ANDROID_LIB}
         ${EGL_LIB}
         ${GLESV2_LIB}
+        ${LOG_LIB}
         ${Z_LIB}
+        ${CPP_SHARED_LIB}
     )
 endif()
 
