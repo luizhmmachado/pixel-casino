@@ -186,6 +186,18 @@ jobs:
             -DQt5Widgets_DIR="$Qt5_DIR/lib/cmake/Qt5Widgets"
           cmake --build build-android --parallel "$(nproc)"
           cmake --install build-android --prefix android-build
+
+          mkdir -p android-build/libs/arm64-v8a
+          APP_SO="$(find build-android -type f -name 'libpixel-casino_arm64-v8a.so' | head -n 1)"
+          if [ -z "$APP_SO" ]; then
+            APP_SO="$(find android-build -type f -name 'libpixel-casino_arm64-v8a.so' | head -n 1)"
+          fi
+          if [ -z "$APP_SO" ]; then
+            echo "Nao encontrou libpixel-casino_arm64-v8a.so"
+            exit 1
+          fi
+          cp "$APP_SO" android-build/libs/arm64-v8a/libpixel-casino_arm64-v8a.so
+
           androiddeployqt \
             --input build-android/android-pixel-casino-deployment-settings.json \
             --output android-build \
