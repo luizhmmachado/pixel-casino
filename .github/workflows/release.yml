@@ -24,7 +24,10 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-          tools: tools_openssl_x64
+
+      - name: Instalar OpenSSL 1.1
+        shell: pwsh
+        run: choco install openssl.light --version=1.1.1.7 --no-progress -y
 
       - name: Build
         run: |
@@ -40,8 +43,8 @@ jobs:
       - name: Bundlar OpenSSL (QSslSocket carrega libssl/libcrypto em tempo de execução)
         shell: pwsh
         run: |
-          $dlls = Get-ChildItem -Path "$env:IQTA_TOOLS" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
-          if (-not $dlls) { throw "OpenSSL 1.1.1 nao encontrado em $env:IQTA_TOOLS" }
+          $dlls = Get-ChildItem -Path "$env:ProgramFiles", "$env:ProgramData\chocolatey\lib" -Recurse -Include libssl-1_1-x64.dll, libcrypto-1_1-x64.dll -ErrorAction SilentlyContinue
+          if (-not $dlls) { throw "OpenSSL 1.1.1 nao encontrado apos a instalacao" }
           $dlls | Group-Object Name | ForEach-Object { $_.Group[0] } | Copy-Item -Destination deploy\ -Force
           Get-ChildItem deploy\lib*-1_1-x64.dll
 
