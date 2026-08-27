@@ -1,6 +1,7 @@
 QT += quick
 QT += sql
 QT += concurrent
+QT += svg
 
 SOURCES += \
         control/blackjack/blackjackcontrol.cpp \

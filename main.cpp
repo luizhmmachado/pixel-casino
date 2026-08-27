@@ -15,6 +15,7 @@ int main( int argc, char* argv[] ) {
     QCoreApplication::setAttribute( Qt::AA_EnableHighDpiScaling );
 #endif
     QGuiApplication app( argc, argv );
+    Q_INIT_RESOURCE( resources );
 
     QCoreApplication::setOrganizationName( "PixelCasino" );
     QCoreApplication::setOrganizationDomain( "pixelcasino.local" );
