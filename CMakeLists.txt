@@ -132,6 +132,11 @@ if(ANDROID)
         set(ANDROID_NDK_HOST "windows-x86_64")
     endif()
 
+    set(ANDROID_STL_PATH "")
+    if(ANDROID_NDK_ROOT)
+        set(ANDROID_STL_PATH "${ANDROID_NDK_ROOT}/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_shared.so")
+    endif()
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android-pixel-casino-deployment-settings.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/android-pixel-casino-deployment-settings.json

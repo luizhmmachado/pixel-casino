@@ -4,6 +4,7 @@
   "sdk": "@ANDROID_SDK_ROOT@",
   "ndk": "@ANDROID_NDK_ROOT@",
   "ndk-host": "@ANDROID_NDK_HOST@",
+  "stdcpp-path": "@ANDROID_STL_PATH@",
   "toolchain-prefix": "llvm",
   "tool-prefix": "llvm",
   "architectures": {"arm64-v8a":"aarch64-linux-android"},
