@@ -168,6 +168,7 @@ jobs:
             -DANDROID_PLATFORM=android-23 \
             -DCMAKE_PREFIX_PATH="$Qt5_DIR/lib/cmake;$Qt5_DIR" \
             -DQt5_DIR="$Qt5_DIR/lib/cmake/Qt5" \
+            -DQt5Concurrent_DIR="$Qt5_DIR/lib/cmake/Qt5Concurrent" \
             -DQt5Core_DIR="$Qt5_DIR/lib/cmake/Qt5Core" \
             -DQt5Gui_DIR="$Qt5_DIR/lib/cmake/Qt5Gui" \
             -DQt5Quick_DIR="$Qt5_DIR/lib/cmake/Qt5Quick" \
