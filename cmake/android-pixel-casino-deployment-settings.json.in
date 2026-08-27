@@ -13,5 +13,5 @@
   "qml-import-paths": "@CMAKE_CURRENT_SOURCE_DIR@/ui",
   "qml-root-path": "@CMAKE_CURRENT_SOURCE_DIR@",
   "qrcFiles": "@CMAKE_CURRENT_SOURCE_DIR@/qml.qrc,@CMAKE_CURRENT_SOURCE_DIR@/resources.qrc",
-  "application-binary": "@CMAKE_CURRENT_BINARY_DIR@/libpixel-casino.so"
+  "application-binary": "pixel-casino"
 }
