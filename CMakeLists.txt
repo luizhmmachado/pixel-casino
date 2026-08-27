@@ -55,14 +55,42 @@ if(ANDROID)
     find_library(DL_LIB dl)
     find_library(EGL_LIB EGL)
     find_library(GLESV2_LIB GLESv2)
-    find_library(LOG_LIB log)
+    find_library(LOG_LIB NAMES log
+        PATHS
+            "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}/${CMAKE_SYSTEM_VERSION}"
+            "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}"
+        NO_DEFAULT_PATH
+    )
+    if(NOT LOG_LIB)
+        find_library(LOG_LIB log)
+    endif()
     find_library(M_LIB m)
-    find_library(Z_LIB z)
+    find_library(Z_LIB NAMES z
+        PATHS
+            "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}/${CMAKE_SYSTEM_VERSION}"
+            "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}"
+        NO_DEFAULT_PATH
+    )
+    if(NOT Z_LIB)
+        find_library(Z_LIB z)
+    endif()
     find_library(CPP_SHARED_LIB c++_shared)
+
+    set(ANDROID_SYSROOT_LIB_DIR "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}/${CMAKE_SYSTEM_VERSION}")
+    set(ANDROID_SYSROOT_LIB_DIR_FALLBACK "${CMAKE_SYSROOT}/usr/lib/${CMAKE_ANDROID_ARCH_TRIPLE}")
 
     # Qt shared libraries pull these transitively; keep them even if
     # the app itself doesn't reference their symbols directly.
     target_link_options(pixel-casino PRIVATE "-Wl,--no-as-needed")
+    if(EXISTS "${ANDROID_SYSROOT_LIB_DIR}")
+        target_link_options(pixel-casino PRIVATE "-Wl,-rpath-link,${ANDROID_SYSROOT_LIB_DIR}")
+    endif()
+    if(EXISTS "${ANDROID_SYSROOT_LIB_DIR_FALLBACK}")
+        target_link_options(pixel-casino PRIVATE "-Wl,-rpath-link,${ANDROID_SYSROOT_LIB_DIR_FALLBACK}")
+    endif()
+    if(EXISTS "${QT_INSTALL_PREFIX}/lib")
+        target_link_options(pixel-casino PRIVATE "-Wl,-rpath-link,${QT_INSTALL_PREFIX}/lib")
+    endif()
 
     target_link_libraries(pixel-casino PRIVATE
         ${ANDROID_LIB}
