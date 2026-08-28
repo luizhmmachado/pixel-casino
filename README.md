@@ -21,6 +21,8 @@ Release now publishes two Android APKs:
 1. `pixel-casino-android-arm64-v8a.apk` (64-bit ARM)
 2. `pixel-casino-android-armeabi-v7a.apk` (32-bit ARM)
 
+Current CMake release APKs use `minSdkVersion 21` (Android 5.0+).
+
 To allow in-place updates between CI releases, configure these GitHub Secrets so the workflow signs APKs with a stable key:
 
 1. `ANDROID_KEYSTORE_B64` (base64 of `.jks`/`.keystore` file)

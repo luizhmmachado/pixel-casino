@@ -115,7 +115,7 @@ install(TARGETS pixel-casino
 )
 
 if(ANDROID)
-    set_property(TARGET pixel-casino PROPERTY QT_ANDROID_MIN_SDK_VERSION 23)
+    set_property(TARGET pixel-casino PROPERTY QT_ANDROID_MIN_SDK_VERSION 21)
     set_property(TARGET pixel-casino PROPERTY QT_ANDROID_TARGET_SDK_VERSION 31)
 
     set(ANDROID_SDK_ROOT "$ENV{ANDROID_SDK_ROOT}")

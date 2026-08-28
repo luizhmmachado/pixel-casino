@@ -8,7 +8,7 @@
   "toolchain-prefix": "llvm",
   "tool-prefix": "llvm",
   "architectures": @ANDROID_ARCHITECTURES_JSON@,
-  "android-min-sdk-version": "23",
+  "android-min-sdk-version": "21",
   "android-target-sdk-version": "31",
   "qml-import-paths": "@CMAKE_CURRENT_SOURCE_DIR@/ui",
   "qml-root-path": "@CMAKE_CURRENT_SOURCE_DIR@",
