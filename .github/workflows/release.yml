@@ -174,6 +174,11 @@ jobs:
         run: git clone --depth 1 https://github.com/KDAB/android_openssl.git
 
       - name: Build e empacotamento APK
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ANDROID_SYSROOT="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
           ANDROID_SYSROOT_LIB_API="$ANDROID_SYSROOT/usr/lib/aarch64-linux-android/23"
@@ -212,11 +217,28 @@ jobs:
           fi
           cp "$APP_SO" android-build/libs/arm64-v8a/libpixel-casino_arm64-v8a.so
 
-          androiddeployqt \
-            --input build-android/android-pixel-casino-deployment-settings.json \
-            --output android-build \
-            --android-platform android-31 \
+          DEPLOY_ARGS=(
+            --input build-android/android-pixel-casino-deployment-settings.json
+            --output android-build
+            --android-platform android-31
             --apk android-build/pixel-casino.apk
+          )
+
+          # Use a stable signing key when provided so APK updates install over previous versions.
+          if [ -n "$ANDROID_KEYSTORE_B64" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/pixel-casino-release.jks"
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
+            DEPLOY_ARGS+=(
+              --release
+              --sign "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS"
+              --storepass "$ANDROID_KEYSTORE_PASSWORD"
+              --keypass "$ANDROID_KEY_PASSWORD"
+            )
+          else
+            DEPLOY_ARGS+=(--debug)
+          fi
+
+          androiddeployqt "${DEPLOY_ARGS[@]}"
           find . -type f -name "*.apk" -exec cp {} pixel-casino-android.apk \;
 
       - uses: actions/upload-artifact@v7
