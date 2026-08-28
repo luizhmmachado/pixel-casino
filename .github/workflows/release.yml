@@ -138,6 +138,10 @@ jobs:
 
   build-android:
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a]
     steps:
       - uses: actions/checkout@v5
 
@@ -180,14 +184,24 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          ANDROID_ABI="${{ matrix.abi }}"
+
           ANDROID_SYSROOT="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-          ANDROID_SYSROOT_LIB_API="$ANDROID_SYSROOT/usr/lib/aarch64-linux-android/23"
-          ANDROID_SYSROOT_LIB="$ANDROID_SYSROOT/usr/lib/aarch64-linux-android"
+          if [ "$ANDROID_ABI" = "arm64-v8a" ]; then
+            ANDROID_TRIPLE="aarch64-linux-android"
+          elif [ "$ANDROID_ABI" = "armeabi-v7a" ]; then
+            ANDROID_TRIPLE="arm-linux-androideabi"
+          else
+            echo "ABI nao suportada: $ANDROID_ABI"
+            exit 1
+          fi
+          ANDROID_SYSROOT_LIB_API="$ANDROID_SYSROOT/usr/lib/$ANDROID_TRIPLE/23"
+          ANDROID_SYSROOT_LIB="$ANDROID_SYSROOT/usr/lib/$ANDROID_TRIPLE"
 
           cmake -S . -B build-android \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_ABI="$ANDROID_ABI" \
             -DANDROID_PLATFORM=android-23 \
             -DCMAKE_EXE_LINKER_FLAGS="-L$ANDROID_SYSROOT_LIB_API -L$ANDROID_SYSROOT_LIB -Wl,-rpath-link,$ANDROID_SYSROOT_LIB_API -Wl,-rpath-link,$ANDROID_SYSROOT_LIB" \
             -DCMAKE_SHARED_LINKER_FLAGS="-L$ANDROID_SYSROOT_LIB_API -L$ANDROID_SYSROOT_LIB -Wl,-rpath-link,$ANDROID_SYSROOT_LIB_API -Wl,-rpath-link,$ANDROID_SYSROOT_LIB" \
@@ -206,22 +220,22 @@ jobs:
           cmake --build build-android --parallel "$(nproc)"
           cmake --install build-android --prefix android-build
 
-          mkdir -p android-build/libs/arm64-v8a
-          APP_SO="$(find build-android -type f -name 'libpixel-casino_arm64-v8a.so' | head -n 1)"
+          mkdir -p "android-build/libs/$ANDROID_ABI"
+          APP_SO="$(find build-android -type f -name "libpixel-casino_${ANDROID_ABI}.so" | head -n 1)"
           if [ -z "$APP_SO" ]; then
-            APP_SO="$(find android-build -type f -name 'libpixel-casino_arm64-v8a.so' | head -n 1)"
+            APP_SO="$(find android-build -type f -name "libpixel-casino_${ANDROID_ABI}.so" | head -n 1)"
           fi
           if [ -z "$APP_SO" ]; then
-            echo "Nao encontrou libpixel-casino_arm64-v8a.so"
+            echo "Nao encontrou libpixel-casino_${ANDROID_ABI}.so"
             exit 1
           fi
-          cp "$APP_SO" android-build/libs/arm64-v8a/libpixel-casino_arm64-v8a.so
+          cp "$APP_SO" "android-build/libs/$ANDROID_ABI/libpixel-casino_${ANDROID_ABI}.so"
 
           DEPLOY_ARGS=(
             --input build-android/android-pixel-casino-deployment-settings.json
             --output android-build
             --android-platform android-31
-            --apk android-build/pixel-casino.apk
+            --apk "android-build/pixel-casino-${ANDROID_ABI}.apk"
           )
 
           # Use a stable signing key when provided so APK updates install over previous versions.
@@ -239,12 +253,12 @@ jobs:
           fi
 
           androiddeployqt "${DEPLOY_ARGS[@]}"
-          find . -type f -name "*.apk" -exec cp {} pixel-casino-android.apk \;
+          cp "android-build/pixel-casino-${ANDROID_ABI}.apk" "pixel-casino-android-${ANDROID_ABI}.apk"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: android-build
-          path: pixel-casino-android.apk
+          name: android-build-${{ matrix.abi }}
+          path: pixel-casino-android-${{ matrix.abi }}.apk
 
   release:
     needs: [build-windows, build-linux, build-android]
@@ -262,4 +276,5 @@ jobs:
           files: |
             artifacts/windows-build/pixel-casino-windows.zip
             artifacts/linux-build/pixel-casino-linux.AppImage
-            artifacts/android-build/pixel-casino-android.apk
+            artifacts/android-build-arm64-v8a/pixel-casino-android-arm64-v8a.apk
+            artifacts/android-build-armeabi-v7a/pixel-casino-android-armeabi-v7a.apk

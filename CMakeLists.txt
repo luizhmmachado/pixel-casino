@@ -141,6 +141,18 @@ if(ANDROID)
         set(ANDROID_STL_PATH "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/${ANDROID_NDK_HOST}/sysroot/usr/lib")
     endif()
 
+    set(ANDROID_ARCH_TRIPLE "")
+    if(CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+        set(ANDROID_ARCH_TRIPLE "aarch64-linux-android")
+    elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
+        set(ANDROID_ARCH_TRIPLE "arm-linux-androideabi")
+    endif()
+
+    set(ANDROID_ARCHITECTURES_JSON "{}")
+    if(CMAKE_ANDROID_ARCH_ABI AND ANDROID_ARCH_TRIPLE)
+        set(ANDROID_ARCHITECTURES_JSON "{\"${CMAKE_ANDROID_ARCH_ABI}\":\"${ANDROID_ARCH_TRIPLE}\"}")
+    endif()
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android-pixel-casino-deployment-settings.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/android-pixel-casino-deployment-settings.json

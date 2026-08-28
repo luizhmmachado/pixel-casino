@@ -14,7 +14,12 @@ If Android shows "App not installed", the most common causes are:
 Quick checks:
 
 1. Uninstall the previous app and install again.
-2. Ensure the device CPU ABI is `arm64-v8a`.
+2. Ensure you are using the APK that matches your device ABI.
+
+Release now publishes two Android APKs:
+
+1. `pixel-casino-android-arm64-v8a.apk` (64-bit ARM)
+2. `pixel-casino-android-armeabi-v7a.apk` (32-bit ARM)
 
 To allow in-place updates between CI releases, configure these GitHub Secrets so the workflow signs APKs with a stable key:
 
