@@ -266,9 +266,23 @@ jobs:
         with:
           path: artifacts
 
+      - name: Definir tag da release
+        id: release_meta
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="manual-${GITHUB_RUN_NUMBER}-$(date -u +%Y%m%d%H%M%S)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Publicar Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Release ${{ steps.release_meta.outputs.tag }}
           files: |
             artifacts/windows-build/pixel-casino-windows.zip
             artifacts/linux-build/pixel-casino-linux.AppImage
