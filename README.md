@@ -16,10 +16,9 @@ Quick checks:
 1. Uninstall the previous app and install again.
 2. Ensure you are using the APK that matches your device ABI.
 
-Release now publishes two Android APKs:
+Release now publishes one Android APK:
 
 1. `pixel-casino-android-arm64-v8a.apk` (64-bit ARM)
-2. `pixel-casino-android-armeabi-v7a.apk` (32-bit ARM)
 
 Current CMake release APKs use `minSdkVersion 21` (Android 5.0+).
 
